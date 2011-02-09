@@ -5,33 +5,43 @@
 #
 # This script checks for a package upgrade against ABS
 #
-# Version 0.1. Released under the Public Domain, 2010.
+# Version 0.3 Released under the Public Domain, 2010.
 
 if [ ! -n "$1" ]; then
-   echo "ERROR: Must provide an argument."
-   echo "Usage: $0 <package_name>     to check a single package"
-   echo "       $0 all                to check all the installed packages"
-   exit 1
+	echo "ERROR: Must provide an argument."
+	echo "Usage: $0 [options] <package_names>	to check specified packages (separated by spaces)"
+	echo "       $0 [options] all			to check all the installed packages"
+	echo "Options: -q				outputs in quiet mode"
+
+	exit 1
 fi
 
-where_in_abs () {
-test -f /var/abs/core/$1/PKGBUILD && pkgbuild=/var/abs/core/$1/PKGBUILD
-test -f /var/abs/extra/$1/PKGBUILD && pkgbuild=/var/abs/extra/$1/PKGBUILD
-test -f /var/abs/community/$1/PKGBUILD && pkgbuild=/var/abs/community/$1/PKGBUILD
-test ! -z $pkgbuild
+test "$1" == "-q" && quiet="true"
+
+where_in_abs() {
+# DISABLE CORE PACKAGES TESTING test -f /var/abs/core/$1/PKGBUILD && pkgbuild=/var/abs/core/$1/PKGBUILD
+test -f /var/abs/extra/$1/PKGBUILD && pkgbuild=/var/abs/extra/$1/PKGBUILD && return 0
+test -f /var/abs/community/$1/PKGBUILD && pkgbuild=/var/abs/community/$1/PKGBUILD && return 0
+return 1
 }
 
-get_versions () {
-curver=$(pacman -Q $1 | awk ' { print $2 } ' | cut -d "-" -f 1)
-absver=$(grep -m 1 pkgver $pkgbuild | sed "s/pkgver=//")
-[[ $curver < $absver ]] && echo -n "$1 "
+get_versions() {
+curver=$(pacman -Q $1 | awk ' { print $2 } ' )
+absver=$(grep -m 1 pkgver $pkgbuild | sed "s/pkgver=//")-$(grep -m 1 pkgrel $pkgbuild | sed "s/pkgrel=//")
+
+if [[ $curver < $absver ]]; then
+	test "$quiet" == "true" && echo -n "$1 " || echo "$1" "($curver -> $absver)"
+fi
+
 }
 
-if [[ $1 == "all" ]]
-  then 
-    for i in $(pacman -Qq | tr "\n" ' ')
-      do ( where_in_abs $i && get_versions $i )
-    done
+if [ "$1" == "all" ] || [ "$2" == "all" ]
+  then
+	for i in $(pacman -Qq | tr "\n" ' ')
+		do where_in_abs $i && get_versions $i
+	done
   else
-    where_in_abs $1 && get_versions $1
+	for i in $*; do
+		where_in_abs $i && get_versions $i
+	done
 fi
