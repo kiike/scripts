@@ -3,7 +3,8 @@
 # An OfflineIMAP wrapper. It will just execute OfflineIMAP
 # every X minutes. Default is 30 minutes.
 #
-# Released under the public domain by Enric Morales, 2011.
+# Released under the public domain by
+# Enric Morales <geekingaround@enric.me>, 2011.
 
 
 if [ -z "$1" ]
