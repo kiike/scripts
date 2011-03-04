@@ -30,7 +30,7 @@ function check_package_upgrade() {
 				then
 					echo -n "$1 "
 				else
-					echo "$1" "($curver -> $absver)"
+					echo "$1" "($SVNVER -> $ABSVER)"
 			fi
 			return 2
 		else
@@ -39,7 +39,7 @@ function check_package_upgrade() {
 }
 
 
-if [ -z $1 ] || [ -z $2 ] ; then
+if [ -z $1 ] || ( [ $1 == "-q" ] && [ -z $2 ] ); then
 	echo "absup"
 	echo "Usage: $0 [-q] all		checks all PKGBUILD updates in $SVN_DIR against $ABS_DIR"
 	echo "               <pkg1>..<pkgn>	just check the given packages."
@@ -52,14 +52,14 @@ fi
 
 test "$1" == "-q" && quiet="true"
 
-if [ $1 == "installed" ] || [ $2 == "installed" ]; then
+if [ $1 == "installed" ] || ( [ $1 == "-q" ] && [ $2 == "installed" ] ); then
 	for i in $(pacman -Qq); do
 		check_package_upgrade $i 
 	done
 	exit 0
 fi
 
-if [ $1 == "all" ] || [ $2 == "all" ]
+if [ $1 == "all" ] || ( [ $1 == "-q" ] && [ $2 == "all" ] )
 	then
 		for i in $(ls ${ABS_DIR}/extra); do
 			check_package_upgrade $i 
