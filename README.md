@@ -1,5 +1,3 @@
-Welcome to ArchScripts, a repo of small scripts for interacting with Arch Linux.
-
 CONTENTS
 ========
 

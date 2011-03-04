@@ -1,47 +1,73 @@
 #!/bin/bash
-
-##########################################################
-# absup.sh by Enric Morales <geekingaround@enric.me>
 #
-# This script checks for a package upgrade against ABS
+#	absup
+#	=========
+#	Checks svn packages updates against abs
 #
-# Version 0.3 Released under the Public Domain, 2010.
+#	Uncopyrighted. Enric Morales <geekingaround@enric.me> 2011
 
-if [ ! -n "$1" ]; then
-	echo "ERROR: Must provide an argument."
-	echo "Usage: $0 [options] <package_names>	to check specified packages (separated by spaces)"
-	echo "       $0 [options] all			to check all the installed packages"
-	echo "Options: -q				outputs in quiet mode"
 
-	exit 1
+SVN_DIR=/home/kiike/archppc
+ABS_DIR=/var/abs/
+
+function check_package_upgrade() {
+	SVN_PKGBUILD="${SVN_DIR}/$i/trunk/PKGBUILD"
+	if [ -f ${SVN_PKGBUILD} ]
+		then
+			source $SVN_PKGBUILD
+			SVNVER=$pkgver #-$pkgrel
+		else
+			return 1
+	fi
+
+	ABS_PKGBUILD="${ABS_DIR}/extra/$i/PKGBUILD"
+	source $ABS_PKGBUILD
+	ABSVER=$pkgver #-$pkgrel
+
+	if ! [ $ABSVER == $SVNVER ]
+		then
+			if [ "$quiet" == "true" ]
+				then
+					echo -n "$1 "
+				else
+					echo "$1" "($curver -> $absver)"
+			fi
+			return 2
+		else
+			return 0
+	fi
+}
+
+
+if [ -z $1 ] || [ -z $2 ] ; then
+	echo "absup"
+	echo "Usage: $0 [-q] all		checks all PKGBUILD updates in $SVN_DIR against $ABS_DIR"
+	echo "               <pkg1>..<pkgn>	just check the given packages."
+	echo "               installed		checks the currently installed packages"
+	echo ""
+	echo " the -q switch won't output version numbers, just updatable packages."
+	exit 255
 fi
+
 
 test "$1" == "-q" && quiet="true"
 
-where_in_abs() {
-# DISABLE CORE PACKAGES TESTING test -f /var/abs/core/$1/PKGBUILD && pkgbuild=/var/abs/core/$1/PKGBUILD
-test -f /var/abs/extra/$1/PKGBUILD && pkgbuild=/var/abs/extra/$1/PKGBUILD && return 0
-test -f /var/abs/community/$1/PKGBUILD && pkgbuild=/var/abs/community/$1/PKGBUILD && return 0
-return 1
-}
-
-get_versions() {
-curver=$(pacman -Q $1 | awk ' { print $2 } ' )
-absver=$(grep -m 1 pkgver $pkgbuild | sed "s/pkgver=//")-$(grep -m 1 pkgrel $pkgbuild | sed "s/pkgrel=//")
-
-if [[ $curver < $absver ]]; then
-	test "$quiet" == "true" && echo -n "$1 " || echo "$1" "($curver -> $absver)"
+if [ $1 == "installed" ] || [ $2 == "installed" ]; then
+	for i in $(pacman -Qq); do
+		check_package_upgrade $i 
+	done
+	exit 0
 fi
 
-}
+if [ $1 == "all" ] || [ $2 == "all" ]
+	then
+		for i in $(ls ${ABS_DIR}/extra); do
+			check_package_upgrade $i 
+		done
+	else
+		for i in $*; do
+			check_package_upgrade $i
+		done
 
-if [ "$1" == "all" ] || [ "$2" == "all" ]
-  then
-	for i in $(pacman -Qq | tr "\n" ' ')
-		do where_in_abs $i && get_versions $i
-	done
-  else
-	for i in $*; do
-		where_in_abs $i && get_versions $i
-	done
 fi
+
