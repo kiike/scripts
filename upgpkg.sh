@@ -38,7 +38,7 @@ for i in $*; do
 	fi
 
 	if (svn status | grep '?'); then
-		svn add $(svn status | grep '?' | tr -d '! ')
+		svn add $(svn status | grep '?' | tr -d '? ')
 	fi
 	/usr/bin/makepkg -cisr
 	
