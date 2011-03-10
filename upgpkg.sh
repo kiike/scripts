@@ -11,9 +11,18 @@ ABS_DIR=/home/kiike/arch/i686
 SVN_DIR=/home/kiike/arch/ppc
 
 for i in $*; do
+	echo -n "==> Checking dependencies... "
+	if ! absup $(getdeps $i) > /dev/null
+		then
+			echo -e "\nERROR: Outdated dependencies for $i:"
+			absup $(getdeps $i)
+			exit 1
+		else
+			echo "Dependencies up-to-date."
+	fi
 	cd ${SVN_DIR}/$i/trunk
-	diff -yr -x '.svn' -x '.git' $PWD ${ABS_DIR}/$i/trunk | less
-	
+	diff --left-column -yr -x '.svn' -x '.git' $PWD ${ABS_DIR}/$i/trunk | less
+		
 	if ! [ -d src ]; then
 		echo -n "Copy /var/abs/extra/$i contents here? " && read copyabs
 		if [ $copyabs == "y" ]
