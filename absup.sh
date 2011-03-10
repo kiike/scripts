@@ -7,30 +7,30 @@
 #	Uncopyrighted. Enric Morales <geekingaround@enric.me> 2011
 
 
-SVN_DIR=/home/kiike/archppc
-ABS_DIR=/var/abs/
+PPC_DIR=/home/kiike/arch/ppc
+i686_DIR=/home/kiike/arch/i686
 
 function check_package_upgrade() {
-	SVN_PKGBUILD="${SVN_DIR}/$i/trunk/PKGBUILD"
-	if [ -f ${SVN_PKGBUILD} ]
+	PPC_PKGBUILD="${PPC_DIR}/$i/trunk/PKGBUILD"
+	if [ -f ${PPC_PKGBUILD} ]
 		then
-			source $SVN_PKGBUILD
-			SVNVER=$pkgver #-$pkgrel
+			source $PPC_PKGBUILD
+			PPCVER=$pkgver-$pkgrel
 		else
 			return 1
 	fi
 
-	ABS_PKGBUILD="${ABS_DIR}/extra/$i/PKGBUILD"
-	source $ABS_PKGBUILD
-	ABSVER=$pkgver #-$pkgrel
+	i686_PKGBUILD="${i686_DIR}/$i/trunk/PKGBUILD"
+	source $i686_PKGBUILD
+	i686VER=$pkgver-$pkgrel
 
-	if ! [ $ABSVER == $SVNVER ]
+	if ! [ $PPCVER == $i686VER ]
 		then
 			if [ "$quiet" == "true" ]
 				then
 					echo -n "$1 "
 				else
-					echo "$1" "($SVNVER -> $ABSVER)"
+					echo "$1" "($PPCVER -> $i686VER)"
 			fi
 			return 2
 		else
@@ -61,7 +61,7 @@ fi
 
 if [ $1 == "all" ] || ( [ $1 == "-q" ] && [ $2 == "all" ] )
 	then
-		for i in $(ls ${ABS_DIR}/extra); do
+		for i in $(ls ${i686_DIR}); do
 			check_package_upgrade $i 
 		done
 	else

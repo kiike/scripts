@@ -1,23 +1,38 @@
 #!/bin/bash 
 # Helps updating pkgs
 
-ABS_DIR=/var/abs
-SVN_DIR=/home/kiike/archppc
+if [ -z $1 ]; then
+	echo -e "upgpkg.\nUsage: upgpkg <pkg1> [pkg2]..[pkgn]"
+	exit 1
+fi
 
-for i in $@; do
+
+ABS_DIR=/home/kiike/arch/i686
+SVN_DIR=/home/kiike/arch/ppc
+
+for i in $*; do
 	cd ${SVN_DIR}/$i/trunk
-	diff -r . ${ABS_DIR}/extra/$i/
-	echo -n "Copy /var/abs/extra/$i contents here? " && read goforit
-	if [ $goforit == "y" ] || [ -z $goforit ]
-		then
-			cp /var/abs/extra/$i/* .
-		else
-			bash
+	diff -yr -x '.svn' -x '.git' $PWD ${ABS_DIR}/$i/trunk | less
+	
+	if ! [ -d src ]; then
+		echo -n "Copy /var/abs/extra/$i contents here? " && read copyabs
+		if [ $copyabs == "y" ]
+			then
+				rm *
+				cp -v $ABS_DIR/$i/trunk/* $PWD
+		fi
+
 	fi
-	svn status
-	sleep 2s
-	echo "OK, there we go..."
-	makepkg -crs
+
+	if (svn status | grep '!'); then
+		svn delete $(svn status | grep '!' | tr -d '! ')
+	fi
+
+	if (svn status | grep '?'); then
+		svn add $(svn status | grep '?' | tr -d '! ')
+	fi
+	/usr/bin/makepkg -cisr
+	
 	if [ $? == 0 ]
 		then
 			echo -n "Push to [e]xtra or [t]esting? [e/t] " && read dest_repo
@@ -27,5 +42,4 @@ for i in $@; do
 			esac
 	fi
 
-	shift
 done
