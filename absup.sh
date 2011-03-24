@@ -7,8 +7,8 @@
 #	Uncopyrighted. Enric Morales <geekingaround@enric.me> 2011
 
 
-PPC_DIR=/home/kiike/arch/ppc
-i686_DIR=/home/kiike/arch/i686
+PPC_DIR=/var/abs/ppc
+i686_DIR=/var/abs/i686
 
 function check_package_upgrade() {
 	PPC_PKGBUILD="${PPC_DIR}/$i/trunk/PKGBUILD"
