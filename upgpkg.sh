@@ -1,6 +1,14 @@
 #!/bin/bash 
 # Helps updating pkgs
 
+function printusage() {
+	echo "upgpkg usage:	upgpkg [-c] [-d] [-e|-t] <pkg_name1> ... [pkg_name99]"
+	echo "   -d		checks if dependencies are up-to-date"
+	echo "   -c		updates the build files (PKGBUILD, patches, etc) without confirmation"
+	echo "   -e, -t		commits to extra or testing after a successful build"
+	exit 1
+
+}
 
 function checkdeps() {
 	echo -n "==> Checking dependencies... "
@@ -79,11 +87,11 @@ while true; do
 	esac
 done
 
-if [ -z $1 ]; then
-	echo -e "upgpkg.\nUsage: upgpkg [-d] <pkg1> [pkg2]..[pkgn]"
-	echo "   -d		checks if dependencies are up-to-date"
-	exit 1
+if [[ $toextra == "true" ]] && [[ $totesting == "true" ]]
+	then echo "==> ERROR: Either use -t or -e, not both."
 fi
+
+[ -z $1 ] && printusage
 
 for i in $*
 	do upgradepkg $1
