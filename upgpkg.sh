@@ -38,25 +38,24 @@ function upgradepkg() {
 	[[ $docheckdeps == "true" ]] && checkdeps
 	cd ${PPC_DIR}/$1/trunk
 		
-	if ! [ -d src ]; then
-		if [[ $copy == "true" ]]
-			then	rm *
-				cp -v $i686_DIR/$1/trunk/* $PWD
-
-			else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${i686_DIR}/$1/trunk | less
-				echo -n "Copy /var/abs/extra/$1/trunk contents here? "
-				read copyabs
-				if [ $copyabs == "y" ]
-					then	rm *
-						cp -v $i686_DIR/$1/trunk/* $PWD
-				fi
-		fi
-
-	fi
-
 	if [ -d src ] || [ -d pkg ]; then
 		rm -rf src pkg
 	fi
+
+	if [[ $copy == "true" ]]
+		then	rm *
+			cp -v $i686_DIR/$1/trunk/* $PWD
+
+		else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${i686_DIR}/$1/trunk | less
+			echo -n "Copy /var/abs/extra/$1/trunk contents here? "
+			read copyabs
+			if [ $copyabs == "y" ]
+				then	rm *
+					cp -v $i686_DIR/$1/trunk/* $PWD
+			fi
+	fi
+
+
 	if (svn status | grep '!'); then
 		svn delete $(svn status | grep '!' | tr -d '! ')
 	fi
