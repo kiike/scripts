@@ -4,8 +4,10 @@
 function printusage() {
 	echo "upgpkg usage:	upgpkg [-c] [-d] [-e|-t] <pkg_name1> ... [pkg_name99]"
 	echo "   -d		checks if dependencies are up-to-date"
-	echo "   -c		updates the build files (PKGBUILD, patches, etc) without confirmation"
-	echo "   -e, -t		commits to extra or testing after a successful build"
+	echo "   -y		updates the build files (PKGBUILD, patches, etc) without confirmation"
+	echo "   -e		commits to extra after a successful build"
+	echo "   -t		commits to testing after a successful build"
+	echo "   -c		commits to core after a successful build"
 	exit 1
 
 }
@@ -30,28 +32,34 @@ function pushtorepos() {
 		case $dest_repo in
 			t) testingpkg -m "Updated" ;;
 			e) extrapkg -m "Updated" ;;
-			esac
-		fi
+		esac
+	fi
 }
 
 function upgradepkg() {
 	[[ $docheckdeps == "true" ]] && checkdeps
 	cd ${PPC_DIR}/$1/trunk
-		
+
 	if [ -d src ] || [ -d pkg ]; then
 		rm -rf src pkg
 	fi
 
+	#test -f ${i686_DIR}/core/$i/PKGBUILD && i686_PKG_DIR="${i686_DIR}/core/$i/"
+	#test -f ${i686_DIR}/extra/$i/PKGBUILD && i686_PKG_DIR="${i686_DIR}/extra/$i/"
+	#test -f ${i686_DIR}/testing/$i/PKGBUILD && i686_PKG_DIR="${i686_DIR}/testing/$i/"
+
+	test -f ${i686_DIR}/$i/trunk/PKGBUILD && i686_PKG_DIR="${i686_DIR}/$i/trunk"	
+
 	if [[ $copy == "true" ]]
 		then	rm *
-			cp -v $i686_DIR/$1/trunk/* $PWD
+			cp -v $i686_PKG_DIR/* $PWD
 
-		else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${i686_DIR}/$1/trunk | less
-			echo -n "Copy /var/abs/extra/$1/trunk contents here? "
+		else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${i686_PKG_DIR}/ | less
+			echo -n "==> Copy $i686_PKG_DIR contents here? "
 			read copyabs
 			if [ $copyabs == "y" ]
 				then	rm *
-					cp -v $i686_DIR/$1/trunk/* $PWD
+					cp -v $i686_PKG_DIR/* $PWD
 			fi
 	fi
 
@@ -69,8 +77,8 @@ function upgradepkg() {
 	[[ $? == 0 ]] && pushtorepos
 } 
 
-i686_DIR=/var/abs/i686
-PPC_DIR=/var/abs/ppc
+i686_DIR=~/i686
+PPC_DIR=~/ppc
 
 while true; do
 	case $1 in
@@ -80,7 +88,9 @@ while true; do
 			shift ;;
 		-e)	toextra=true
 			shift ;;
-		-c)	copy=true
+		-y)	copy=true
+			shift ;;
+		-c)	tocore=true
 			shift ;;
 		*)	break ;;
 	esac

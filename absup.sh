@@ -7,20 +7,25 @@
 #	Uncopyrighted. Enric Morales <geekingaround@enric.me> 2011
 
 
-PPC_DIR=/var/abs/ppc
-i686_DIR=/var/abs/i686
+PPC_DIR=~/ppc
+i686_DIR=~/i686
 
 function check_package_upgrade() {
 	PPC_PKGBUILD="${PPC_DIR}/$i/trunk/PKGBUILD"
-	if [ -f ${PPC_PKGBUILD} ]
+	if [ -f $PPC_PKGBUILD ]
 		then
 			source $PPC_PKGBUILD
 			PPCVER=$pkgver-$pkgrel
 		else
 			return 1
 	fi
+	
+	#test -f ${i686_DIR}/core/$i//PKGBUILD && i686_PKGBUILD="${i686_DIR}/core/$i//PKGBUILD"
+	#test -f ${i686_DIR}/extra/$i/PKGBUILD && i686_PKGBUILD="${i686_DIR}/extra/$i/PKGBUILD"
+	#test -f ${i686_DIR}/testing/$i/PKGBUILD && i686_PKGBUILD="${i686_DIR}/testing/$i/PKGBUILD"
 
 	i686_PKGBUILD="${i686_DIR}/$i/trunk/PKGBUILD"
+
 	source $i686_PKGBUILD
 	i686VER=$pkgver-$pkgrel
 
@@ -61,7 +66,7 @@ fi
 
 if [ $1 == "all" ] || ( [ $1 == "-q" ] && [ $2 == "all" ] )
 	then
-		for i in $(ls ${i686_DIR}); do
+		for i in $(ls ${PPC_DIR}); do
 			check_package_upgrade $i 
 		done
 	else
