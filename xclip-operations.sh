@@ -4,7 +4,7 @@ case $1 in
 	ma) mplayer -ao null $(xclip -o) ;;
 	n) echo "$(xclip -o)" >> ~/.config/newsbeuter/urls ;;
 	p) plowdown -v 3 "$(xclip -o)";;
-	y) youtube-viewer "$(xclip -o)" -4;;
+	y) youtube-viewer "$(xclip -o)" --480;;
 	d) 	cd ~/downloads
 		wget $(xclip -o) ;;
 	w) wget $(xclip -o) ;;

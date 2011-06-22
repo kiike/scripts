@@ -1,0 +1,208 @@
+#!/bin/bash 
+# Helps updating PKGBUILDs against different Arch Linux projects
+# Uncopyrighted 2011 Enric Morales
+
+# {{ Global variables
+ORIGIN_DIR=/home/build/i686
+DEST_DIR=/home/build/ppc
+REPO_DIR=/home/build/repo
+#}}
+
+function printusage() {
+	echo "Usage:	upgpkg up [OPTIONS] <pkg1> .. <pkg 99>	upgrades the given packages"
+	echo "	upgpkg check [pkg1] .. [pkg99]		checks all or given packages for upgrades"
+	echo "	upgpkg deps <pkg1> .. [pkg99]		prints the dependencies of the given packages"
+	echo ""
+	echo "	OPTIONS"
+	echo "	-d		check dependencies of the given packages for upgrades"
+	echo "	-c, -t, -e	pushes to [core], [testing] or [extra] respectively"
+
+	exit 1
+
+}
+
+function getdeps() {
+	if [ -r $ORIGIN_DIR/$1/trunk/PKGBUILD ]
+		then 	echo "==> Dependencies for $1:" >&2
+		else	echo "==> ERROR: package $1 not found"
+			return 1
+	fi
+	source $ORIGIN_DIR/$1/trunk/PKGBUILD
+	for dep in ${depends[@]} ${makedepends[@]}
+	   	do echo ${dep%%[<>=]*} | tr '\n' ' '
+	done
+	echo
+}
+
+function checkdeps() {
+	TEMPFILE="upgpkg.tmp"
+	echo -n "==> Checking dependencies... "
+	if ! vercheck $(getdeps $1)
+		then	echo "ERROR: Outdated dependencies for $1:"
+			vercheck $(getdeps $1)	
+			exit 1
+		else	echo "Dependencies up-to-date."
+	fi
+	rm $TEMPFILE
+}
+
+function vercheck() {
+	DEST_PKGBUILD="${ORIGIN_DIR}/$1/trunk/PKGBUILD"
+	ORIGIN_PKGBUILD="${DEST_DIR}/$1/trunk/PKGBUILD"
+
+	if [ -f ${DEST_PKGBUILD} ]
+			then
+			source $DEST_PKGBUILD
+			DEST_VER=$pkgver-$pkgrel
+		else
+			return 1
+	fi 
+
+	source $ORIGIN_PKGBUILD
+	ORIGIN_VER=$pkgver-$pkgrel
+
+	if [ $(vercmp $DEST_VER $ORIGIN_VER) == "1" ]
+	#if [[ "$DEST_VER" != "$ORIGIN_VER" ]]
+		then
+			if [ "$quiet" == "true" ]
+				then
+					echo -n "$1 "
+				else
+					echo "$1 ($ORIGIN_VER -> $DEST_VER)"
+			fi
+			return 2
+		else
+			return 0
+	fi
+}
+
+function pushtorepos() {
+	[[ $totesting == "true" ]] && testingpkg -m 'Updated'
+	[[ $toextra == "true" ]] && extrapkg -m 'Updated'
+	if [ -z $toextra ] && [ -z $totesting ]; then
+		echo -n "Push to [e]xtra or [t]esting? [e/t] " && read dest_repo
+		case $dest_repo in
+			t) testingpkg -m "Updated" ;;
+			e) extrapkg -m "Updated" ;;
+			c) corepkg -m "Updated" ;;
+		esac
+	fi
+}
+
+function up() {
+	ORIGIN_TRUNK=${ORIGIN_DIR}/$1/trunk
+	DEST_TRUNK=${DEST_DIR}/$1/trunk
+	
+	if [ ! -d ${DEST_TRUNK} ] || [ ! -d ${ORIGIN_TRUNK} ]
+		then	echo "==> ERROR: The $1 package build dir wasn't found. Check for typos."
+			return 1
+	fi
+
+
+	[[ $docheckdeps == "true" ]] && checkdeps $1
+	cd ${DEST_TRUNK}
+	
+	if [ -d src ] || [ -d pkg ]; then
+		rm -rf src pkg
+	fi
+	
+	# This function will diff the ORIGIN and DESTINATION directories recursively so that you can
+	# review the changes before starting the build process. It's possible to override this by setting
+	# the -y flag to the program.
+	if [[ $docopy == "true" ]]
+		then	rm ${DEST_TRUNK}/*
+			cp -v $ORIGIN_TRUNK/* ${DEST_TRUNK}
+
+		else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${ORIGIN_TRUNK}/ | less
+			echo -n "==> Copy ${ORIGIN_TRUNK} contents to ${DEST_TRUNK}? "
+			read copy
+			case $copy in
+				y|Y)	rm ${DEST_TRUNK}/*
+					cp -v ${ORIGIN_TRUNK}/* ${DEST_TRUNK}
+					;;
+				n|N)	echo "   ==> Spawning a shell 'exit' it when done."
+					$SHELL
+					;;
+			esac
+	fi
+
+	# These two lines remove files that are not longer in the ORIGIN_TRUNK folder
+	# and add the files that don't exist in the DESTINATION_TRUNK folder. 
+	(svn status | grep '!') && svn delete $(svn status | grep '!' | tr -d '! ')
+	(svn status | grep '?') && svn add $(svn status | grep '?' | tr -d '? ')
+	
+	mppcadd	
+	if makepkg -rsc 
+		then	pushtorepos
+			repo-add --quiet $REPO_DIR/breakit.db.tar.gz $REPO_DIR/*pkg.tar.xz
+			sudo pacman -Sy
+	fi
+} 
+
+function add() {
+		if [ ! -d $ORIGIN_DIR/$1 ]
+			then	echo "ERROR: package $1 not found. Check for typos."
+				return 1
+		fi
+		cd $DEST_DIR
+		mkdir -p $1/{repos,trunk}
+		cp -v $ORIGIN_DIR/$1/trunk/* $DEST_DIR/$1/trunk/
+		svn add $1 && cd $1 && svn commit -m "add $1"
+}
+
+
+case $1 in
+	up) 	shift
+		while getopts dteyc arg
+			do	case ${arg} in
+					d) docheckdeps="true" ;;
+					t) totesting="true" ;;
+					e) toextra="true" ;;
+					y) docopy="true" ;;
+					c) tocore="true" ;;
+					*) echo "==> ERROR: Invalid argument ${arg}";;
+				esac
+
+			done
+
+		shift $(($OPTIND - 1))
+
+		if [[ $toextra == "true" ]] && [[ $totesting == "true" ]] || [[ $tocore == "true" ]]
+			then echo "==> ERROR: Please specify a single repository to push to."
+		fi
+
+
+		for i in $*
+			do	up $i
+				shift
+		done
+		;;
+
+	deps)	shift
+		for i in $*
+			do	getdeps $i
+			done
+		;;
+
+	check)	shift
+		if [ -z $1 ]
+			then	for i in $(ls $DEST_DIR)
+					do vercheck $i
+				done
+			else	vercheck $*
+		fi
+		;;
+	
+	add)	shift
+		for i in $*
+			do	add $i
+				up $i
+		done
+		;;
+
+	*)	echo "ERROR: Arguments $* not recognized"
+		printusage
+		;;
+esac
+
+# vim: filetype=sh 
