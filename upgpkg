@@ -3,34 +3,56 @@
 # Uncopyrighted 2011 Enric Morales
 
 # {{ Global variables
-ORIGIN_DIR=/home/build/i686
-DEST_DIR=/home/build/ppc
-REPO_DIR=/home/build/repo
+origin_dir="/home/kiike/build/i686"
+dest_dir="/home/kiike/build/ppc"
+repo_dir="/home/kiike/build/repo"
+chroot_dir="/home/kiike/build"
+default_chroot="archppc"
 #}}
 
+# {{ Set some bash options
+shopt -s extglob		# This allows us to exlude files in the up() function.
+# }}
+
+function add() {
+		if [ ! -d ${origin_dir}/$1 ]
+			then	echo "ERROR: package $1 not found. Check for typos."
+				return 1
+		fi
+		cd $dest_dir
+		mkdir -p $1/{repos,trunk}
+		cp -v $origin_dir/$1/trunk/* $dest_dir/$1/trunk/
+		svn add $1 && cd $1 && svn commit -m "add $1"
+}
+
 function printusage() {
-	echo "Usage:	upgpkg up [OPTIONS] <pkg1> .. <pkg 99>	upgrades the given packages"
-	echo "	upgpkg check [pkg1] .. [pkg99]		checks all or given packages for upgrades"
-	echo "	upgpkg deps <pkg1> .. [pkg99]		prints the dependencies of the given packages"
+	echo "Usage:  upgpkg  up [OPTIONS] <PACKAGES>   upgrades the PACKAGES"
+        echo "                add <PACKAGES>            adds the PACKAGES to the repos"   
+	echo "                check [PACKAGES]          checks all PACKAGES for upgrades"
+	echo "                deps  [PACKAGES]          prints the dependencies of PACKAGES"
 	echo ""
 	echo "	OPTIONS"
-	echo "	-d		check dependencies of the given packages for upgrades"
-	echo "	-c, -t, -e	pushes to [core], [testing] or [extra] respectively"
+        echo "  -C              passes the -c option to makearchrootpkg, to clean the working copy"
+        echo "  -i              passes the -i option to makearchrootpkg, to install the package after building"
+	echo "  -d              check dependencies of the given packages for upgrades before building"
+        echo "  -f              don't ask questions (can be dangerous if the PKGBUILDs are not reviewed"
+        echo "  -l              working copy name (default: $default_chroot)"
+	echo "  -[c|t|e]        pushes to [core], [testing] or [extra] respectively"
 
 	exit 1
 
 }
 
 function getdeps() {
-	if [ -r $ORIGIN_DIR/$1/trunk/PKGBUILD ]
+	if [ -r $origin_dir/$1/trunk/PKGBUILD ]
 		then 	echo "==> Dependencies for $1:" >&2
 		else	echo "==> ERROR: package $1 not found"
 			return 1
 	fi
-	source $ORIGIN_DIR/$1/trunk/PKGBUILD
+	(source $origin_dir/$1/trunk/PKGBUILD
 	for dep in ${depends[@]} ${makedepends[@]}
 	   	do echo ${dep%%[<>=]*} | tr '\n' ' '
-	done
+	done)
 	echo
 }
 
@@ -43,12 +65,12 @@ function checkdeps() {
 			exit 1
 		else	echo "Dependencies up-to-date."
 	fi
-	rm $TEMPFILE
+	rm -f $TEMPFILE
 }
 
 function vercheck() {
-	DEST_PKGBUILD="${ORIGIN_DIR}/$1/trunk/PKGBUILD"
-	ORIGIN_PKGBUILD="${DEST_DIR}/$1/trunk/PKGBUILD"
+	DEST_PKGBUILD="${origin_dir}/$1/trunk/PKGBUILD"
+	ORIGIN_PKGBUILD="${dest_dir}/$1/trunk/PKGBUILD"
 
 	if [ -f ${DEST_PKGBUILD} ]
 			then
@@ -90,17 +112,20 @@ function pushtorepos() {
 }
 
 function up() {
-	ORIGIN_TRUNK=${ORIGIN_DIR}/$1/trunk
-	DEST_TRUNK=${DEST_DIR}/$1/trunk
+	origin_trunk=${origin_dir}/$1/trunk
+	dest_trunk=${dest_dir}/$1/trunk
 	
-	if [ ! -d ${DEST_TRUNK} ] || [ ! -d ${ORIGIN_TRUNK} ]
-		then	echo "==> ERROR: The $1 package build dir wasn't found. Check for typos."
+	if [ ! -d ${dest_trunk} ] && [ ! -d ${origin_trunk} ]
+		then	echo "==> ERROR: The $1 package build dir wasn't found."
 			return 1
+	elif [ ! -d ${dest_trunk} ] && [ -d ${origin_trunk} ]
+		then	echo "==> Adding package $1..."
+			add $1
 	fi
 
 
 	[[ $docheckdeps == "true" ]] && checkdeps $1
-	cd ${DEST_TRUNK}
+	cd ${dest_trunk}
 	
 	if [ -d src ] || [ -d pkg ]; then
 		rm -rf src pkg
@@ -108,58 +133,48 @@ function up() {
 	
 	# This function will diff the ORIGIN and DESTINATION directories recursively so that you can
 	# review the changes before starting the build process. It's possible to override this by setting
-	# the -y flag to the program.
+	# the -y flag to the program. It also cleans the folder so that automating svn is easier.
 	if [[ $docopy == "true" ]]
-		then	rm ${DEST_TRUNK}/*
-			cp -v $ORIGIN_TRUNK/* ${DEST_TRUNK}
+		then	rm ${dest_trunk}/!{*.gz|*.part|*.bz2|*.zip|*.xz}
+			cp -v $origin_trunk/* ${dest_trunk}
 
-		else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${ORIGIN_TRUNK}/ | less
-			echo -n "==> Copy ${ORIGIN_TRUNK} contents to ${DEST_TRUNK}? "
+		else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${origin_trunk}/ | less
+			echo -n "==> Copy ${origin_trunk} contents to ${dest_trunk}? "
 			read copy
 			case $copy in
-				y|Y)	rm ${DEST_TRUNK}/*
-					cp -v ${ORIGIN_TRUNK}/* ${DEST_TRUNK}
+				y|Y)	rm ${dest_trunk}/!{*.gz|*.part|*.bz2|*.zip|*.xz}
+					cp -v ${origin_trunk}/* ${dest_trunk}
 					;;
 				n|N)	echo "   ==> Spawning a shell 'exit' it when done."
-					$SHELL
+					bash
 					;;
 			esac
 	fi
 
-	# These two lines remove files that are not longer in the ORIGIN_TRUNK folder
+	# These two lines remove files that are not longer in the origin_trunk folder
 	# and add the files that don't exist in the DESTINATION_TRUNK folder. 
 	(svn status | grep '!') && svn delete $(svn status | grep '!' | tr -d '! ')
 	(svn status | grep '?') && svn add $(svn status | grep '?' | tr -d '? ')
 	
 	mppcadd	
-	if makepkg -rsc 
+	if makearchrootpkg -r $chroot_dir -l ${working_copy:-$default_chroot}
 		then	pushtorepos
-			repo-add --quiet $REPO_DIR/breakit.db.tar.gz $REPO_DIR/*pkg.tar.xz
-			sudo pacman -Sy
+		else	exit 1
 	fi
 } 
 
-function add() {
-		if [ ! -d $ORIGIN_DIR/$1 ]
-			then	echo "ERROR: package $1 not found. Check for typos."
-				return 1
-		fi
-		cd $DEST_DIR
-		mkdir -p $1/{repos,trunk}
-		cp -v $ORIGIN_DIR/$1/trunk/* $DEST_DIR/$1/trunk/
-		svn add $1 && cd $1 && svn commit -m "add $1"
-}
-
-
 case $1 in
 	up) 	shift
-		while getopts dteyc arg
+		while getopts dtefiCcl: arg
 			do	case ${arg} in
 					d) docheckdeps="true" ;;
 					t) totesting="true" ;;
 					e) toextra="true" ;;
-					y) docopy="true" ;;
+					f) docopy="true" ;;
 					c) tocore="true" ;;
+					C) clean_chroot="true" ;;
+					i) doinstall="true" ;;
+					l) working_copy=$OPTARG ;;
 					*) echo "==> ERROR: Invalid argument ${arg}";;
 				esac
 
@@ -186,7 +201,7 @@ case $1 in
 
 	check)	shift
 		if [ -z $1 ]
-			then	for i in $(ls $DEST_DIR)
+			then	for i in $(ls $dest_dir)
 					do vercheck $i
 				done
 			else	vercheck $*
@@ -205,4 +220,4 @@ case $1 in
 		;;
 esac
 
-# vim: filetype=sh 
+# vim: filetype=sh sts=2 sw=2 ts=8 et
