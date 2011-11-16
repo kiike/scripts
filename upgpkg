@@ -5,7 +5,7 @@
 # {{ Global variables
 origin_dir="/home/kiike/build/i686"
 dest_dir="/home/kiike/build/ppc"
-repo_dir="/home/kiike/build/repo"
+repo_path="/home/kiike/build/repo/breakit.db.tar.gz"
 chroot_dir="/home/kiike/build"
 default_chroot="archppc"
 #}}
@@ -36,7 +36,7 @@ function printusage() {
         echo "  -i              passes the -i option to makearchrootpkg, to install the package after building"
 	echo "  -d              check dependencies of the given packages for upgrades before building"
         echo "  -f              don't ask questions (can be dangerous if the PKGBUILDs are not reviewed"
-        echo "  -l              working copy name (default: $default_chroot)"
+        echo "  -l COPY         working copy name (default: $default_chroot)"
 	echo "  -[c|t|e]        pushes to [core], [testing] or [extra] respectively"
 
 	exit 1
@@ -133,16 +133,16 @@ function up() {
 	
 	# This function will diff the ORIGIN and DESTINATION directories recursively so that you can
 	# review the changes before starting the build process. It's possible to override this by setting
-	# the -y flag to the program. It also cleans the folder so that automating svn is easier.
+	# the -f flag to the program. It also cleans the folder so that automating svn is easier.
 	if [[ $docopy == "true" ]]
-		then	rm ${dest_trunk}/!{*.gz|*.part|*.bz2|*.zip|*.xz}
+                then	rm ${dest_trunk}/!(*.gz|*.part|*.bz2|*.zip|*.xz)
 			cp -v $origin_trunk/* ${dest_trunk}
 
 		else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${origin_trunk}/ | less
 			echo -n "==> Copy ${origin_trunk} contents to ${dest_trunk}? "
 			read copy
 			case $copy in
-				y|Y)	rm ${dest_trunk}/!{*.gz|*.part|*.bz2|*.zip|*.xz}
+				y|Y)	rm ${dest_trunk}/!(*.gz|*.part|*.bz2|*.zip|*.xz)
 					cp -v ${origin_trunk}/* ${dest_trunk}
 					;;
 				n|N)	echo "   ==> Spawning a shell 'exit' it when done."
@@ -157,7 +157,7 @@ function up() {
 	(svn status | grep '?') && svn add $(svn status | grep '?' | tr -d '? ')
 	
 	mppcadd	
-	if makearchrootpkg -r $chroot_dir -l ${working_copy:-$default_chroot}
+	if sudo makechrootpkg -d -u -r $chroot_dir -l ${working_copy:-$default_chroot}
 		then	pushtorepos
 		else	exit 1
 	fi
