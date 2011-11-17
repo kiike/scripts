@@ -15,18 +15,20 @@ shopt -s extglob		# This allows us to exlude files in the up() function.
 # }}
 
 function add() {
-		if [ ! -d ${origin_dir}/$1 ]
-			then	echo "ERROR: package $1 not found. Check for typos."
+  for i in *
+    do  if [ ! -d ${origin_dir}/$1 ]
+          then	echo "ERROR: package $1 not found. Check for typos."
 				return 1
-		fi
-		cd $dest_dir
-		mkdir -p $1/{repos,trunk}
-		cp -v $origin_dir/$1/trunk/* $dest_dir/$1/trunk/
-		svn add $1 && cd $1 && svn commit -m "add $1"
+	fi
+	cd $dest_dir
+	mkdir -p $1/{repos,trunk}
+	cp -v $origin_dir/$1/trunk/* $dest_dir/$1/trunk/
+	svn add $1 && cd $1 && svn commit -m "add $1"
+    done
 }
 
 function printusage() {
-	echo "Usage:  upgpkg  up [OPTIONS] <PACKAGES>   upgrades the PACKAGES"
+	echo "Usage:  upkg    up [OPTIONS] <PACKAGES>   upgrades the PACKAGES"
         echo "                add <PACKAGES>            adds the PACKAGES to the repos"   
 	echo "                check [PACKAGES]          checks all PACKAGES for upgrades"
 	echo "                deps  [PACKAGES]          prints the dependencies of PACKAGES"
@@ -44,28 +46,30 @@ function printusage() {
 }
 
 function getdeps() {
-	if [ -r $origin_dir/$1/trunk/PKGBUILD ]
-		then 	echo "==> Dependencies for $1:" >&2
-		else	echo "==> ERROR: package $1 not found"
+  for i in $*
+    do	if [ -r $origin_dir/$i/trunk/PKGBUILD ]
+		then 	echo "==> Dependencies for $i:" >&2
+		else	echo "==> ERROR: package $i not found"
 			return 1
 	fi
-	(source $origin_dir/$1/trunk/PKGBUILD
+	(source $origin_dir/$i/trunk/PKGBUILD
 	for dep in ${depends[@]} ${makedepends[@]}
 	   	do echo ${dep%%[<>=]*} | tr '\n' ' '
 	done)
 	echo
+  done
 }
 
 function checkdeps() {
-	TEMPFILE="upgpkg.tmp"
-	echo -n "==> Checking dependencies... "
-	if ! vercheck $(getdeps $1)
-		then	echo "ERROR: Outdated dependencies for $1:"
-			vercheck $(getdeps $1)	
-			exit 1
-		else	echo "Dependencies up-to-date."
-	fi
-	rm -f $TEMPFILE
+  echo -n "==> Checking dependencies... "
+    for i in $*
+      do if ! vercheck $(getdeps $(getdeps $1))
+                  then	echo "ERROR: Outdated dependencies for $1:"
+                          vercheck $(getdeps $1)	
+                          return 2
+                  else	echo "Dependencies for $1 up-to-date."
+          fi
+      done
 }
 
 function vercheck() {
@@ -194,9 +198,7 @@ case $1 in
 		;;
 
 	deps)	shift
-		for i in $*
-			do	getdeps $i
-			done
+		getdeps $*
 		;;
 
 	check)	shift
@@ -204,15 +206,14 @@ case $1 in
 			then	for i in $(ls $dest_dir)
 					do vercheck $i
 				done
-			else	vercheck $*
+			else	for i in $*
+                                        do vercheck $i
+                                done
 		fi
 		;;
 	
 	add)	shift
-		for i in $*
-			do	add $i
-				up $i
-		done
+		add $*
 		;;
 
 	*)	echo "ERROR: Arguments $* not recognized"
