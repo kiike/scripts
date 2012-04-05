@@ -3,7 +3,7 @@
 # Uncopyrighted 2011 Enric Morales
 
 # {{ Global variables
-origin_dir="/home/kiike/build/i686"
+origin_dir="/home/kiike/build/x86"
 dest_dir="/home/kiike/build/ppc"
 repo_path="/home/kiike/build/repo/breakit.db.tar.gz"
 chroot_dir="/home/kiike/build"
@@ -14,9 +14,21 @@ default_chroot="archppc"
 shopt -s extglob		# This allows us to exlude files in the up() function.
 # }}
 
+function prepare_pkgbuild() {
+        # Add ppc architecture
+        if (grep -q '^arch=.*any' PKGBUILD || grep -q '^arch=.*ppc' PKGBUILD)
+            then    return 0
+            else    sed -i "s/\(^arch.*\))/\1 'ppc')/g" PKGBUILD
+            fi
+
+        sed -i 's/Maintainer:/x86 Maintainer:/' PKGBUILD
+        sed -i 's,ftp://ftp.archlinux.org/,http://mirrors.kernel.org/archlinux/,' PKGBUILD
+
+}
+
+
 function add() {
-  for i in *
-    do  if [ ! -d ${origin_dir}/$1 ]
+        if [ ! -d ${origin_dir}/$1 ]
           then	echo "ERROR: package $1 not found. Check for typos."
 				return 1
 	fi
@@ -24,16 +36,17 @@ function add() {
 	mkdir -p $1/{repos,trunk}
 	cp -v $origin_dir/$1/trunk/* $dest_dir/$1/trunk/
 	svn add $1 && cd $1 && svn commit -m "add $1"
-    done
 }
+
 
 function printusage() {
 	echo "Usage:  upkg    up [OPTIONS] <PACKAGES>   upgrades the PACKAGES"
         echo "                add <PACKAGES>            adds the PACKAGES to the repos"   
 	echo "                check [PACKAGES]          checks all PACKAGES for upgrades"
 	echo "                deps  [PACKAGES]          prints the dependencies of PACKAGES"
+        echo "                checkdeps [PACKAGES]      checks dependencies of PACKAGES for upgrades"
 	echo ""
-	echo "	OPTIONS"
+	echo "  OPTIONS"
         echo "  -C              passes the -c option to makearchrootpkg, to clean the working copy"
         echo "  -i              passes the -i option to makearchrootpkg, to install the package after building"
 	echo "  -d              check dependencies of the given packages for upgrades before building"
@@ -48,105 +61,118 @@ function printusage() {
 function getdeps() {
   for i in $*
     do	if [ -r $origin_dir/$i/trunk/PKGBUILD ]
-		then 	echo "==> Dependencies for $i:" >&2
-		else	echo "==> ERROR: package $i not found"
-			return 1
+            then        (source $origin_dir/$i/trunk/PKGBUILD 
+                        for dep in ${depends[@]} ${makedepends[@]}
+                        do echo ${dep%%[<>=]*} | tr '\n' ' '
+                        done)
+                        echo -e "\n" 
+
+            else	echo "==> ERROR: package $i not found"
+			#return 1
 	fi
-	(source $origin_dir/$i/trunk/PKGBUILD
-	for dep in ${depends[@]} ${makedepends[@]}
-	   	do echo ${dep%%[<>=]*} | tr '\n' ' '
-	done)
-	echo
   done
 }
 
 function checkdeps() {
-  echo -n "==> Checking dependencies... "
     for i in $*
-      do if ! vercheck $(getdeps $(getdeps $1))
-                  then	echo "ERROR: Outdated dependencies for $1:"
-                          vercheck $(getdeps $1)	
-                          return 2
-                  else	echo "Dependencies for $1 up-to-date."
-          fi
-      done
-}
+        do  for i in $(getdeps $i) $(getdeps $(getdeps $i))
+                do result=$(vercheck $i)
+                    test -n "$result" && OUTDATED="${result}\n${OUTDATED}"
+                done
+        done
+    
+    if [ -n "$OUTDATED" ]
+        then    echo -e "$OUTDATED" | sed -e '/^$/d' | uniq
+                return 2
+        else    return 0
+    fi
+  }
+
+function getversion() {
+        ( source $1 2> /dev/null; echo $pkgver-$pkgrel )
+  }
 
 function vercheck() {
-	DEST_PKGBUILD="${origin_dir}/$1/trunk/PKGBUILD"
-	ORIGIN_PKGBUILD="${dest_dir}/$1/trunk/PKGBUILD"
+        arg=$1
+
+        # Check if we actually want to work on a split package.
+        case $arg in
+            gcc-libs) arg=gcc ;;
+            sh)     arg=bash;;
+            pkgconfig) arg=pkg-config;;
+        esac
+
+	DEST_PKGBUILD="${origin_dir}/$arg/trunk/PKGBUILD"
+	ORIGIN_PKGBUILD="${dest_dir}/$arg/trunk/PKGBUILD"
 
 	if [ -f ${DEST_PKGBUILD} ]
-			then
-			source $DEST_PKGBUILD
-			DEST_VER=$pkgver-$pkgrel
-		else
-			return 1
+		then  DEST_VER=$(getversion $DEST_PKGBUILD)
+		else  return 1
 	fi 
 
-	source $ORIGIN_PKGBUILD
-	ORIGIN_VER=$pkgver-$pkgrel
+        ORIGIN_VER=$(getversion $ORIGIN_PKGBUILD)
 
 	if [ $(vercmp $DEST_VER $ORIGIN_VER) == "1" ]
-	#if [[ "$DEST_VER" != "$ORIGIN_VER" ]]
-		then
-			if [ "$quiet" == "true" ]
-				then
-					echo -n "$1 "
-				else
-					echo "$1 ($ORIGIN_VER -> $DEST_VER)"
+		then    if [ "$quiet" == "true" ]
+				then	echo -n "$arg "
+				else	echo "$arg ($ORIGIN_VER -> $DEST_VER)"
 			fi
 			return 2
-		else
-			return 0
+		else	return 0
 	fi
 }
 
 function pushtorepos() {
-	[[ $totesting == "true" ]] && testingpkg -m 'Updated'
-	[[ $toextra == "true" ]] && extrapkg -m 'Updated'
-	if [ -z $toextra ] && [ -z $totesting ]; then
-		echo -n "Push to [e]xtra or [t]esting? [e/t] " && read dest_repo
+	[[ $totesting == "true" ]] && testingpkg 'Updated'
+	[[ $toextra == "true" ]] && extrapkg 'Updated'
+        [[ $tocore == "true" ]] && corepkg 'Updated'
+	if [ -z $toextra ] && [ -z $totesting ] && [ -z $tocore ] ; then
+		echo -n "Push to [c]ore, [e]xtra or [t]esting? [c|e|t] " && read dest_repo
 		case $dest_repo in
-			t) testingpkg -m "Updated" ;;
-			e) extrapkg -m "Updated" ;;
-			c) corepkg -m "Updated" ;;
+			t) testingpkg "Updated" ;;
+			e) extrapkg "Updated" ;;
+			c) corepkg "Updated" ;;
+                        *) echo "Canceled."
 		esac
 	fi
 }
 
 function up() {
-	origin_trunk=${origin_dir}/$1/trunk
+ 	origin_trunk=${origin_dir}/$1/trunk
 	dest_trunk=${dest_dir}/$1/trunk
 	
-	if [ ! -d ${dest_trunk} ] && [ ! -d ${origin_trunk} ]
+	if [ ! -d ${origin_trunk} ]
 		then	echo "==> ERROR: The $1 package build dir wasn't found."
 			return 1
 	elif [ ! -d ${dest_trunk} ] && [ -d ${origin_trunk} ]
 		then	echo "==> Adding package $1..."
 			add $1
-	fi
+        fi
 
 
-	[[ $docheckdeps == "true" ]] && checkdeps $1
+        if [[ $docheckdeps == "true" ]]
+            then    checkdeps $1
+                    [ ! $? == "0" ] && exit $?
+        fi
+
 	cd ${dest_trunk}
 	
-	if [ -d src ] || [ -d pkg ]; then
-		rm -rf src pkg
+	if [ -d src ] || [ -d pkg ]
+                then    rm -rf src pkg
 	fi
 	
 	# This function will diff the ORIGIN and DESTINATION directories recursively so that you can
 	# review the changes before starting the build process. It's possible to override this by setting
 	# the -f flag to the program. It also cleans the folder so that automating svn is easier.
 	if [[ $docopy == "true" ]]
-                then	rm ${dest_trunk}/!(*.gz|*.part|*.bz2|*.zip|*.xz)
+                then	rm -f ${dest_trunk}/!(*.gz|*.part|*.bz2|*.zip|*.xz)
 			cp -v $origin_trunk/* ${dest_trunk}
 
 		else	diff --left-column -yr -x '.svn' -x '.git' $PWD ${origin_trunk}/ | less
 			echo -n "==> Copy ${origin_trunk} contents to ${dest_trunk}? "
 			read copy
 			case $copy in
-				y|Y)	rm ${dest_trunk}/!(*.gz|*.part|*.bz2|*.zip|*.xz)
+				y|Y)	rm -f ${dest_trunk}/!(*.gz|*.part|*.bz2|*.zip|*.xz)
 					cp -v ${origin_trunk}/* ${dest_trunk}
 					;;
 				n|N)	echo "   ==> Spawning a shell 'exit' it when done."
@@ -157,11 +183,14 @@ function up() {
 
 	# These two lines remove files that are not longer in the origin_trunk folder
 	# and add the files that don't exist in the DESTINATION_TRUNK folder. 
-	(svn status | grep '!') && svn delete $(svn status | grep '!' | tr -d '! ')
-	(svn status | grep '?') && svn add $(svn status | grep '?' | tr -d '? ')
+	(svn status | grep -q '!') && svn delete $(svn status | grep '!' | tr -d '! ')
+	(svn status | grep -q '?') && svn add $(svn status | grep '?' | tr -d '? ')
 	
-	mppcadd	
-	if sudo makechrootpkg -d -u -r $chroot_dir -l ${working_copy:-$default_chroot}
+	prepare_pkgbuild
+        
+        [[ $edit == "true" ]] && $EDITOR PKGBUILD
+        [[ $clean_chroot == "true" ]] && extra_flags="-c"
+	if sudo makechrootpkg -d -u $extra_flags -r $chroot_dir -l ${working_copy:-$default_chroot} 
 		then	pushtorepos
 		else	exit 1
 	fi
@@ -169,27 +198,23 @@ function up() {
 
 case $1 in
 	up) 	shift
-		while getopts dtefiCcl: arg
+		while getopts dteEfiCcl: arg
 			do	case ${arg} in
+					C) clean_chroot="true" ;;
+					c) tocore="true" ;;
 					d) docheckdeps="true" ;;
-					t) totesting="true" ;;
 					e) toextra="true" ;;
 					f) docopy="true" ;;
-					c) tocore="true" ;;
-					C) clean_chroot="true" ;;
 					i) doinstall="true" ;;
 					l) working_copy=$OPTARG ;;
+					t) totesting="true" ;;
+                                        E) edit="true" ;;
 					*) echo "==> ERROR: Invalid argument ${arg}";;
 				esac
 
 			done
 
 		shift $(($OPTIND - 1))
-
-		if [[ $toextra == "true" ]] && [[ $totesting == "true" ]] || [[ $tocore == "true" ]]
-			then echo "==> ERROR: Please specify a single repository to push to."
-		fi
-
 
 		for i in $*
 			do	up $i
@@ -201,7 +226,13 @@ case $1 in
 		getdeps $*
 		;;
 
+        checkdeps)  shift
+                    checkdeps $*
+                    ;;
+
 	check)	shift
+                [[ $1 == "-q" ]] && quiet=true && shift
+
 		if [ -z $1 ]
 			then	for i in $(ls $dest_dir)
 					do vercheck $i
@@ -221,4 +252,4 @@ case $1 in
 		;;
 esac
 
-# vim: filetype=sh sts=2 sw=2 ts=8 et
+# vim: filetype=sh sts=4 sw=4 ts=8 et
