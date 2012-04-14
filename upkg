@@ -126,15 +126,6 @@ function pushtorepos() {
 	[[ $totesting == "true" ]] && testingpkg 'Updated'
 	[[ $toextra == "true" ]] && extrapkg 'Updated'
         [[ $tocore == "true" ]] && corepkg 'Updated'
-	if [ -z $toextra ] && [ -z $totesting ] && [ -z $tocore ] ; then
-		echo -n "Push to [c]ore, [e]xtra or [t]esting? [c|e|t] " && read dest_repo
-		case $dest_repo in
-			t) testingpkg "Updated" ;;
-			e) extrapkg "Updated" ;;
-			c) corepkg "Updated" ;;
-                        *) echo "Canceled."
-		esac
-	fi
 }
 
 function up() {
@@ -188,11 +179,17 @@ function up() {
 	
 	prepare_pkgbuild
         
-        [[ $edit == "true" ]] && $EDITOR PKGBUILD
+        if [[ $edit == "true" ]] 
+            then    echo -e "\a"
+                    $EDITOR PKGBUILD
+        fi
+
         [[ $clean_chroot == "true" ]] && extra_flags="-c"
 	if sudo makechrootpkg -d -u $extra_flags -r $chroot_dir -l ${working_copy:-$default_chroot} 
-		then	pushtorepos
-		else	exit 1
+		then	echo -e "\a"
+                        pushtorepos
+		else	echo -e "\a"
+                        exit 1
 	fi
 } 
 
