@@ -126,6 +126,7 @@ function pushtorepos() {
 	[[ $totesting == "true" ]] && testingpkg 'Updated'
 	[[ $toextra == "true" ]] && extrapkg 'Updated'
         [[ $tocore == "true" ]] && corepkg 'Updated'
+        [[ $justcommit == "true" ]] && svn commit -m 'updated'
 }
 
 function up() {
@@ -195,11 +196,12 @@ function up() {
 
 case $1 in
 	up) 	shift
-		while getopts dteEfiCcl: arg
+		while getopts sdteEfiCcl: arg
 			do	case ${arg} in
 					C) clean_chroot="true" ;;
 					c) tocore="true" ;;
 					d) docheckdeps="true" ;;
+                                        s) justcommit="true" ;;
 					e) toextra="true" ;;
 					f) docopy="true" ;;
 					i) doinstall="true" ;;
