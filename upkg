@@ -176,7 +176,8 @@ function up() {
 	# These two lines remove files that are not longer in the origin_trunk folder
 	# and add the files that don't exist in the DESTINATION_TRUNK folder. 
 	(svn status | grep -q '!') && svn delete $(svn status | grep '!' | tr -d '! ')
-	(svn status | grep -q '?') && svn add $(svn status | grep '?' | tr -d '? ')
+	(svn status | grep -q '?' | grep -v .tar.xz | grep -v .tar.bz2 | grep -v .tar.gz | grep -v .log) \
+                    && svn add $(svn status | grep '?' | tr -d '? ')
 	
 	prepare_pkgbuild
         

@@ -1,0 +1,33 @@
+#!/bin/bash
+pushd "$(pwd)"
+for dir in $*; do
+cd "$dir"
+for a in *.flac; do
+OUTF=`echo "$a" | sed s/\.flac$/.mp3/g`
+
+ARTIST=`metaflac "$a" --show-tag=ARTIST | sed s/.*=//g`
+TITLE=`metaflac "$a" --show-tag=TITLE | sed s/.*=//g`
+ALBUM=`metaflac "$a" --show-tag=ALBUM | sed s/.*=//g`
+TRACKNUMBER=`metaflac "$a" --show-tag=TRACKNUMBER | sed s/.*=//g`
+DATE=`metaflac "$a" --show-tag=DATE | sed s/.*=//g`
+
+OPTS=(  --noreplaygain
+	-V0
+	--verbose
+	--add-id3v2
+	--pad-id3v2
+	--ignore-tag-error
+)
+
+TAGS=(  --tt "$TITLE"
+	--tn "${TRACKNUMBER:-0}"
+	--ta "$ARTIST"
+	--tl "$ALBUM"
+	--ty "$DATE"
+) 
+
+flac -c -d "$a" | lame ${LAMEOPTS[@]} ${LAMETAGS[@]} - "$OUTF"
+done
+
+popd
+done
