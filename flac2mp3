@@ -1,33 +1,36 @@
 #!/bin/bash
-pushd "$(pwd)"
-for dir in $*; do
-cd "$dir"
-for a in *.flac; do
-OUTF=`echo "$a" | sed s/\.flac$/.mp3/g`
+for dir in "$*"; do
+	cd "$dir"
+	for a in *.flac; do
+		OUTF=`echo "$a" | sed s/\.flac$/.mp3/g`
 
-ARTIST=`metaflac "$a" --show-tag=ARTIST | sed s/.*=//g`
-TITLE=`metaflac "$a" --show-tag=TITLE | sed s/.*=//g`
-ALBUM=`metaflac "$a" --show-tag=ALBUM | sed s/.*=//g`
-TRACKNUMBER=`metaflac "$a" --show-tag=TRACKNUMBER | sed s/.*=//g`
-DATE=`metaflac "$a" --show-tag=DATE | sed s/.*=//g`
+		ARTIST=`metaflac "$a" --show-tag=ARTIST | sed s/.*=//g`
+		TITLE=`metaflac "$a" --show-tag=TITLE | sed s/.*=//g`
+		ALBUM=`metaflac "$a" --show-tag=ALBUM | sed s/.*=//g`
+		TRACKNUMBER=`metaflac "$a" --show-tag=TRACKNUMBER | sed s/.*=//g`
+		DATE=`metaflac "$a" --show-tag=DATE | sed s/.*=//g`
 
-OPTS=(  --noreplaygain
-	-V0
-	--verbose
-	--add-id3v2
-	--pad-id3v2
-	--ignore-tag-error
-)
+		case "$dir" in
+			*V0*) BITRATE="-V 0" ;;
+			*320*) BITRATE="-b 320" ;;
+			*V2*) BITRATE="-V 2";;
+		esac
 
-TAGS=(  --tt "$TITLE"
-	--tn "${TRACKNUMBER:-0}"
-	--ta "$ARTIST"
-	--tl "$ALBUM"
-	--ty "$DATE"
-) 
+		OPTS=(  --noreplaygain
+			--verbose
+			--add-id3v2
+			--pad-id3v2
+			--ignore-tag-error
+		)
 
-flac -c -d "$a" | lame ${LAMEOPTS[@]} ${LAMETAGS[@]} - "$OUTF"
-done
+		TAGS=(  --tt "$TITLE"
+			--tn "${TRACKNUMBER:-0}"
+			--ta "$ARTIST"
+			--tl "$ALBUM"
+			--ty "$DATE"
+		) 
 
-popd
+		flac -c -d "$a" | lame "${LAMEOPTS[@]}" "${LAMETAGS[@]}" "$BITRATE" - "$OUTF"
+		done
+	cd -
 done
