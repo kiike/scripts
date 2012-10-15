@@ -1,0 +1,7 @@
+#!/bin/sh
+# This quick script cd's to the requested file's directory
+# and executes the given file with wine.
+
+
+cd "$(dirname "$1")"
+wine "$(basename "$1")"
