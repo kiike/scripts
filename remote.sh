@@ -1,4 +1,5 @@
 #!/bin/sh
+# Uncopyrighted. By Enric Morales. 2012
 
 outputNowPlaying() {
 	notify-send -t 2000 -- "Now playing:" "\"$(echo $TITLE)\"\nby $(echo $ARTIST)"
