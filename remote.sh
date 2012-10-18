@@ -1,4 +1,5 @@
 #!/bin/sh
+# Uncopyrighted. By Enric Morales. 2012
 
 formatTime() {
 	local S=${1}
