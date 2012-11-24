@@ -1,0 +1,9 @@
+#!/bin/bash
+
+PAPERSIZE="a4paper"
+FONTSIZE="12pt"
+
+pandoc -o ${1%%.*}.pdf \
+	-V geometry:$PAPERSIZE \
+	-V fontsize:$FONTSIZE \
+	$1
