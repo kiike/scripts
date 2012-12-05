@@ -1,0 +1,5 @@
+#!/bin/bash
+# This is a wrapper for find
+# Usage: ffind <string>
+
+find * -iname "*$**" | sort | grep -i --color "$*"
