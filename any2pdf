@@ -1,9 +1,7 @@
 #!/bin/bash
 
-PAPERSIZE="a4paper"
-FONTSIZE="12pt"
+TEMPLATE="$(dirname $0)/any2pdf.template"
 
 pandoc -o ${1%%.*}.pdf \
-	-V geometry:$PAPERSIZE \
-	-V fontsize:$FONTSIZE \
+	--template $TEMPLATE \
 	$1
