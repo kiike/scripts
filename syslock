@@ -1,0 +1,17 @@
+#!/bin/sh
+
+DEVICE=_dev_sda4
+CS="sudo cryptsetup"
+
+$CS luksSuspend /dev/mapper/$DEVICE
+if [ $? = 0 ];
+   then
+        echo "$DEVICE is locked."
+   else
+        echo "Couldn't lock ${DEVICE}. Please correct $0."
+        exit 1
+fi
+
+i3lock -c 000000
+
+$CS luksResume /dev/mapper/$DEVICE
