@@ -1,4 +1,5 @@
 #!/bin/bash
+# A small pandoc wrapper
 
 TEMPLATE="$(dirname $0)/any2pdf.template"
 
