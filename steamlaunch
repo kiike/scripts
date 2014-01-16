@@ -1,0 +1,13 @@
+export WINEPREFIX=/home/kiike/.winesteam
+STEAM_PATH='C:\Program Files\Steam\Steam.exe'
+
+case $1 in
+	terraria)
+		ACTION="-applaunch 105600"
+		;;
+	*)
+		ACTION=""
+		;;
+esac
+
+exec wine "$STEAM_PATH" -no-dwrite $ACTION >/dev/null
