@@ -1,0 +1,95 @@
+#! /bin/sh
+#
+source "$1"
+
+screen_width=$(sres -W)
+NORMIFS=$IFS
+FIELDIFS=':'
+SMALL_PADDING=' '
+BIG_PADDING='   '
+
+# Calculate width
+_calc_width() {
+    s=$(echo -n -- "$1" | sed 's/\^[a-z]\+([^)]*)//g')
+    echo $(txtw -f "$FONT_FAMILY" -s "$FONT_SIZE" -- "$s")
+}
+
+while read -r line ; do
+    case $line in
+        # New mail indicator
+        M*) new_mail="^fg(${COLOR_STATUS_FG})${line#?}^fg()"
+        ;;
+
+        # Date
+        D*) date="^fg(${COLOR_STATUS_FG})${line#?}^fg()"
+        ;;
+
+        # Keyboard layout indicator
+        K*) kbdlayout="^fg(${COLOR_STATUS_FG})${line#?}^fg()"
+        ;;
+
+        # Current window title
+        T*) title=${line#?}
+        ((${#title} > 64)) && title="${title:0:64}..."
+        title="^fg($COLOR_TITLE_FG)^bg($COLOR_TITLE_BG)${PADDING}${title}${PADDING}^fg()^bg()"
+        ;;
+
+        # bspwm state
+        W*)
+        wm_info="$SMALL_PADDING"
+        IFS=$FIELDIFS
+        set -- ${line#?}
+        while [ $# -gt 0 ] ; do
+            item=$1
+            case $item in
+                [OoFfUu]*)
+                    # desktops
+                    name=${item#?}
+                    case $item in
+                        # focused {urgent,free,occupied} desktop
+                        U*|O*|F*)
+                        FG=$COLOR_FOCUSED_FG
+                        BG=$COLOR_FOCUSED_BG
+                        ;;
+
+                        # urgent desktop
+                        u*) FG=$COLOR_URGENT_FG
+                        BG=$COLOR_URGENT_BG
+                        ;;
+
+                        *) FG=$COLOR_FG
+                        BG=$COLOR_BG
+                        ;;
+
+                esac
+                wm_info="${wm_info}^fg(${FG})^bg(${BG})${SMALL_PADDING}${name}${SMALL_PADDING}"
+                ;;
+
+            # layout
+            L*) layout=$(printf "%s" "${item#?}" | sed 's/^\(.\).*/\U\1/')
+                wm_info="${wm_info}^fg()^bg()${SMALL_PADDING}^fg($COLOR_LAYOUT_FG)^bg($COLOR_LAYOUT_BG)${SMALL_PADDING}$layout${SMALL_PADDING}"
+                ;;
+        esac
+        shift
+    done
+    IFS=$NORMIFS
+    ;;
+    esac
+
+    left="${wm_info}"
+    center="${title}"
+    right="${new_mail}${BIG_PADDING}${kbdlayout}${BIG_PADDING}${date}"
+
+    left_width=$(_calc_width "$left")
+    center_width=$(_calc_width "$center")
+    right_width=$(_calc_width "$right")
+
+    left_indent=0
+    right_indent=$((screen_width - right_width))
+    center_indent=$(((screen_width / 2) - (center_width / 2)- 10))
+
+    echo "^pa(${center_indent})${center}^pa($left_indent)$left^pa($right_indent)${right}"
+
+done
+
+# vim: et sts=4 sw=4 ts=4

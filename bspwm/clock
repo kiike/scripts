@@ -1,0 +1,32 @@
+#!/bin/bash
+# A clock that updates itself every minute
+
+DATE_FORMAT='+%a %d %b, %H:%M'
+prefix=$1
+
+_sync() {
+	current_seconds=$(date '+%S')
+	current_seconds=10#$current_seconds
+	seconds_to_sleep=$((60 - current_seconds))
+	sleep $seconds_to_sleep
+}
+
+echo -n $prefix
+date "$DATE_FORMAT"
+
+_sync
+
+let i=0
+let sync_at=50
+while true; do
+	echo -n $prefix
+	date "$DATE_FORMAT"
+	sleep 1m
+
+	if ((i == sync_at)); then 
+		_sync
+		let i=0
+	else
+		let i++
+	fi
+done

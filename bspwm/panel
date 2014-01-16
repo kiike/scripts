@@ -1,0 +1,47 @@
+#!/bin/bash
+
+MY_PATH=$(dirname $0)
+CONF="${MY_PATH}/panel.conf"
+PATH="$MY_PATH:$PATH"
+source "$CONF"
+
+die() {
+    bspc config top_padding 0
+    rm -f "$PANEL_FIFO"
+    kill 0
+}
+
+start() {
+    bspc config top_padding $PANEL_HEIGHT
+
+    bspc control --subscribe > "$PANEL_FIFO" &
+    maildir_check 'M'> "$PANEL_FIFO" &
+    kbdlayout get > "$PANEL_FIFO" &
+    xtitle -sf 'T%s' > "$PANEL_FIFO" &
+    clock 'D' > "$PANEL_FIFO" &
+
+    cat "$PANEL_FIFO" | panel_dzen2 "$CONF" | tee /tmp/panel.out | dzen2 \
+               -h $PANEL_HEIGHT \
+               -dock \
+               -ta l \
+               -title-name panel \
+               -fn "${FONT_FAMILY}":pixelsize=${FONT_SIZE} \
+               -fg "$COLOR_FG" \
+               -bg "$COLOR_BG" \
+    &
+
+    wait
+}
+
+trap 'die' INT TERM QUIT EXIT
+
+if ! pgrep -u $USER -x panel; then
+    echo "ERROR: The panel is already running" >&2
+    exit 1
+else
+    [[ -e "$PANEL_FIFO" ]] || mkfifo "$PANEL_FIFO"
+    start
+    die
+fi
+
+# vim: et sts=4 ts=4 sw=4
