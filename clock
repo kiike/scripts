@@ -1,0 +1,42 @@
+#!/bin/env python
+
+from time import strftime, sleep, localtime
+from sys import argv, exit, stdout
+
+if len(argv) > 1:
+    PREFIX = argv[1]
+else:
+    PREFIX = ''
+
+DATE_FORMAT = PREFIX + '%a %d %b, %H:%M'
+SYNC_AT_I = 30
+
+
+def sync():
+    time = localtime()
+    seconds_to_sleep = 60 - time.tm_sec
+    sleep(seconds_to_sleep)
+
+
+def main():
+    print(strftime(DATE_FORMAT))
+    stdout.flush()
+    sync()
+
+    i = 0
+    while True:
+        print(strftime(DATE_FORMAT))
+        stdout.flush()
+        if i == SYNC_AT_I:
+            sync()
+            i = 0
+        else:
+            i += 1
+            sleep(60)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        exit()
