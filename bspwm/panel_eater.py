@@ -5,11 +5,13 @@ from subprocess import Popen, PIPE
 from sys import exit
 import signal
 
-fifo = '/tmp/panel.fifo'
+FIFO = '/tmp/panel.fifo'
+
+SEP = '\\f8 | \\fr'
 
 everything = ['desktops',
               '\\c', 'wm_title',
-              '\\r', 'keyboard', 'date']
+              '\\r', 'keyboard', SEP, 'battery', SEP, 'date']
 
 
 def build(everything, line):
@@ -49,13 +51,17 @@ def build(everything, line):
         else:
             everything[2] = line[1:]
 
-    # Keyboard layout with K. Put it into the 5th field
+    # Capture battery charge and put it into its field
+    elif line.startswith('B'):
+        everything[6] = line[1:]
+
+    # Capture keyboard layout and put it into its field
     elif line.startswith('K'):
         everything[4] = line[1:]
 
     # Current date starts with D. Put it into the 6th field
     elif line.startswith('D'):
-        everything[5] = line[1:]
+        everything[8] = line[1:]
 
     return everything
 
@@ -69,7 +75,7 @@ def die():
 
 def main():
     """ Start the main app loop """
-    with open(fifo) as f:
+    with open(FIFO) as f:
         while True:
             for line in f:
                 line_s = line.strip()

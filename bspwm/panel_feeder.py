@@ -11,12 +11,14 @@ fifo = '/tmp/panel.fifo'
 
 apps = {'clock': 'clock D',
         'keyboard': 'kbdlayout get',
+        'battery': 'battery B',
         'mail': 'maildir_check M',
         'bspwm_status': 'bspc control --subscribe',
         'win_title': 'xtitle -sf T%s'
         }
 
 enabled_apps = ['bspwm_status',
+                'battery',
                 'clock',
                 'win_title']
 
