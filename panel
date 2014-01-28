@@ -8,6 +8,7 @@ import os
 import sys
 
 fifo = '/tmp/panel.fifo'
+home = os.getenv('HOME')
 
 apps = {'clock': 'clock D',
         'keyboard': 'kbdlayout get',
@@ -27,20 +28,22 @@ enabled_apps = ['bspwm_status',
 active_apps = []
 
 
-def start():
+def main():
     """ Start all the processes in the "enabled_apps" list. """
     if not os.path.exists(fifo):
         os.mkfifo(fifo)
 
     with open(fifo, mode='w') as f:
         for app in enabled_apps:
-            cmd = apps[app].split()
-            print(cmd)
+            command = apps[app].split()
+            print(command)
 
-            child = subprocess.Popen(cmd, stdout=f,
+            # Spawn the process
+            child = subprocess.Popen(command,
+                                     stdout=f,
                                      universal_newlines=True,
                                      stdin=None)
-            print('Started', app, '(' + str(child.pid) + ')')
+            print('Started', app, '(' + str(child.pid) + ')', flush=True)
             active_apps.append(child)
 
         subprocess.call(apps['keyboard'].split(), stdout=f)
@@ -57,19 +60,19 @@ def check():
 
 def die():
     for app in active_apps:
-        print('Killing', app)
+        print('Killing', app, flush=True)
         app.kill()
 
-    print('Cleaning up...')
+    print('Cleaning up...', flush=True)
     os.remove(fifo)
-    print('Bye!')
+    print('Bye!', flush=True)
     sys.exit()
 
 if __name__ == '__main__':
     if check():
         signal.signal(signal.SIGTERM, die)
         try:
-            start()
+            main()
         except KeyboardInterrupt:
             die()
     else:
