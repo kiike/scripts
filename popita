@@ -1,0 +1,24 @@
+#!/bin/bash
+
+FONT='DejaVu Sans'
+FONT_SIZE=12
+TITLE="$1"
+BODY="$2"
+LINES=$(echo -e $BODY | wc -l)
+WIDTH=$(txtw -s $FONT_SIZE -f "$FONT" "$BODY")
+
+BG='#151515'
+FG='#D0D0D0'
+
+echo -e "$TITLE\n$BODY" |\
+ dzen2  -fg "$FG" \
+ 	-bg "$BG" \
+	-p 2 \
+	-l $LINES \
+	-fn "FONT":pizelsize=${FONT_SIZE} \
+	-e onstart=uncollapse \
+	-ta r \
+	-sa r \
+	-w $(($WIDTH + 24 )) \
+	-x $(($(sres -W) - 24 - $WIDTH)) \
+	-y 0
