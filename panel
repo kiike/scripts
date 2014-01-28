@@ -13,13 +13,14 @@ apps = {'clock': 'clock D',
         'keyboard': 'kbdlayout get',
         'panel_parser': 'panel_parser',
         'battery': 'battery B',
-        'mail': 'maildir_check M',
+        'mail': 'inbox_watcher {0}/mail/inbox M'.format(home),
         'bspwm_status': 'bspc control --subscribe',
         'win_title': 'xtitle -sf T%s'
         }
 
 enabled_apps = ['bspwm_status',
                 'battery',
+                'mail',
                 'clock',
                 'win_title']
 

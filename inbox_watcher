@@ -1,0 +1,39 @@
+#!/usr/bin/python
+#
+# A small script that returns the number of new mail in $1, sleeps
+# one minute, and repeats.
+
+from time import sleep
+from sys import argv, exit
+from os import walk, path
+
+def main():
+    # Loop forever
+    while True:
+        # Let's walk the first argument
+        for root, dirs, files in walk(target):
+            # Print prefix together with the number of
+            # files we found
+            print(prefix + str(len(files)), flush=True)
+
+        # ... and sleep 60 seconds
+        sleep(60)
+
+
+if len(argv) == 2:
+    target = argv[1] + '/new'
+    prefix = ''
+
+elif len(argv) == 3:
+    target = argv[1] + '/new'
+    prefix = argv[2]
+
+else:
+    usage = 'Usage: {0} <target_dir> [output_prefix]'.format(argv[0])
+    sys.exit(usage)
+
+
+if path.exists(target):
+    main()
+else:
+    print('Couldn\'t find {0}.').format(target)
