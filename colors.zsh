@@ -1,11 +1,13 @@
 #!/bin/zsh
-case $(tput colors); in
-	256)	for code in {000..255}; do
-			print -P -- "$code: %F{$code}Test%f"
+case $1; in
+	255|256)
+		for code in {000..255}; do
+			print -P -- "%F{$code}$code $code $code}Test%f"
 		done
 		;;
-	*)	for code in {000..15}; do
-			print -P -- "$code: %F{$code}Test%f"
+	16|*)
+		for code in {000..15}; do
+			print -P -- "%F{$code}$code $code $code%f"
 		done
 		;;
 esac
