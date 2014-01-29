@@ -10,8 +10,10 @@ FIFO = '/tmp/panel.fifo'
 SEP = '\\f8 | \\fr'
 
 everything = ['desktops',
-              '\\c', 'wm_title',
-              '\\r', 'keyboard', SEP, 'battery', SEP, 'date']
+              '\\c', '',
+              # mail, keyboard, separator,
+              # battery, separator, date
+              '\\r', '', '', SEP, '', SEP, '']
 
 
 def build(everything, line):
@@ -34,9 +36,11 @@ def build(everything, line):
             # Focused {urgent, occupied} desktops
             if d.startswith('U') or d.startswith('O') or d.startswith('F'):
                 desktops.append('\\f1' + d[1] + '\\fr')
+
             # Unfocused urgent desktops
             elif d.startswith('u'):
-                desktops.append('\\b8\\f3' + d[1] + '\\fr\\br')
+                desktops.append('\\b1\\f8' + d[1] + '\\fr\\br')
+
             # Unfocused unoccupied desktops
             else:
                 desktops.append(d[1])
@@ -51,17 +55,24 @@ def build(everything, line):
         else:
             everything[2] = line[1:]
 
-    # Capture battery charge and put it into its field
-    elif line.startswith('B'):
-        everything[6] = line[1:]
+    # Capture inbox_check output and put it into its field
+    elif line.startswith('M'):
+        if line[1:] != '0':
+            everything[4] = 'New mail' + SEP
+        else:
+            everything[4] = ''
 
     # Capture keyboard layout and put it into its field
     elif line.startswith('K'):
-        everything[4] = line[1:]
+        everything[5] = line[1:]
+
+    # Capture battery charge and put it into its field
+    elif line.startswith('B'):
+        everything[7] = line[1:]
 
     # Current date starts with D. Put it into the 6th field
     elif line.startswith('D'):
-        everything[8] = line[1:]
+        everything[9] = line[1:]
 
     return everything
 
