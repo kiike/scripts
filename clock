@@ -1,4 +1,7 @@
 #!/bin/env python
+# A clock that updates every minute. Pass it a string as
+# the first argument to prepend it to the output. This is
+# useful for parsing the output with panel makers, etc.
 
 from time import strftime, sleep, localtime
 from sys import argv, exit, stdout
@@ -9,30 +12,13 @@ else:
     PREFIX = ''
 
 DATE_FORMAT = PREFIX + '%a %d %b, %H:%M'
-SYNC_AT_I = 30
-
-
-def sync():
-    time = localtime()
-    seconds_to_sleep = 60 - time.tm_sec
-    sleep(seconds_to_sleep)
-
 
 def main():
-    print(strftime(DATE_FORMAT))
-    stdout.flush()
-    sync()
-
-    i = 0
     while True:
-        print(strftime(DATE_FORMAT))
-        stdout.flush()
-        if i == SYNC_AT_I:
-            sync()
-            i = 0
-        else:
-            i += 1
-            sleep(60)
+        print(strftime(DATE_FORMAT), flush=True)
+        time = localtime()
+        seconds_to_sleep = 60 - time.tm_sec
+        sleep(seconds_to_sleep)
 
 
 if __name__ == '__main__':
