@@ -40,7 +40,6 @@ def parse_wm_status(line):
 
 
 def parse_win_title(line):
-    # Window title starts with T. Put it into the 3rd field
     if len(line) > 69:
         output = '{0}...'.format(line[1:69])
     else:
@@ -50,7 +49,6 @@ def parse_win_title(line):
 
 
 def parse_mail_count(line):
-    # Capture inbox_check output and return
     if line[1:] != '0':
         output = 'New mail {}'.format(SEPARATOR)
     else:
