@@ -7,74 +7,81 @@ import signal
 
 FIFO = '/tmp/panel.fifo'
 
-SEP = '\\f8 | \\fr'
+SEPARATOR = '\\f8 | \\fr'
+CENTER = '\c'
+RIGHT = '\\r'
 
-everything = ['desktops',
-              '\\c', '',
-              # mail, keyboard, separator,
-              # battery, separator, date
-              '\\r', '', '', SEP, '', SEP, '']
+LAYOUT = ['W',
+          CENTER, 'T',
+          RIGHT, 'M', 'K', SEPARATOR, 'B', SEPARATOR, 'D']
+
+def parse_wm_status(line):
+    wm_info = line[1:].split(':')
+    # Remove monitor label
+    wm_info.pop(0)
+    # Remove current tiling mode
+    wm_info.pop(-1)
+
+    desktops = []
+    for d in wm_info:
+        # Focused {urgent, occupied} desktops
+        if d[0] == 'U' or d[0] == 'O' or d[0] == 'F':
+            desktops.append('\\f1{}\\fr'.format(d[1]))
+
+        # Unfocused urgent desktops
+        elif d[0] == 'u':
+            desktops.append('\\b1\\f8{}\\fr\\br'.format(d[1]))
+
+        # Unfocused unoccupied desktops
+        else:
+            desktops.append(d[1])
+
+    return ' '.join(desktops)
 
 
-def build(everything, line):
+def parse_win_title(line):
+    # Window title starts with T. Put it into the 3rd field
+    if len(line) > 69:
+        output = '{0}...'.format(line[1:69])
+    else:
+        output = line[1:]
+
+    return output
+
+
+def parse_mail_count(line):
+    # Capture inbox_check output and return
+    if line[1:] != '0':
+        output = 'New mail {}'.format(SEPARATOR)
+    else:
+        output =  ''
+
+    return output
+
+
+def parse_other(line):
+    return line[1:]
+
+
+def parse(status, line):
     """
-    Parse the input line and put it into the 'everything' list in place
+    Substitute a part of the "status" list for a parsed version of "line"
 
     [list], str -> str
     """
 
-    if line.startswith('WM'):
-        line = line[2:]
-        wm_info = line.split(':')
-        # Remove monitor label
-        wm_info.pop(0)
-        # Remove current tiling mode
-        wm_info.pop(-1)
+    prefix = line[0]
 
-        desktops = []
-        for d in wm_info:
-            # Focused {urgent, occupied} desktops
-            if d.startswith('U') or d.startswith('O') or d.startswith('F'):
-                desktops.append('\\f1' + d[1] + '\\fr')
+    handler_for = {'W': parse_wm_status,
+                   'M': parse_mail_count,
+                   'T': parse_win_title,
+                   'B': parse_other,
+                   'D': parse_other,
+                   'K': parse_other}
 
-            # Unfocused urgent desktops
-            elif d.startswith('u'):
-                desktops.append('\\b1\\f8' + d[1] + '\\fr\\br')
+    status[LAYOUT.index(prefix)] = handler_for[prefix](line)
 
-            # Unfocused unoccupied desktops
-            else:
-                desktops.append(d[1])
-
-        # Joined desktops lists -> everything's 1st field
-        everything[0] = ' '.join(desktops)
-
-    # Window title starts with T. Put it into the 3rd field
-    elif line.startswith('T'):
-        if len(line) > 69:
-            everything[2] = line[1:69] + '...'
-        else:
-            everything[2] = line[1:]
-
-    # Capture inbox_check output and put it into its field
-    elif line.startswith('M'):
-        if line[1:] != '0':
-            everything[4] = 'New mail' + SEP
-        else:
-            everything[4] = ''
-
-    # Capture keyboard layout and put it into its field
-    elif line.startswith('K'):
-        everything[5] = line[1:]
-
-    # Capture battery charge and put it into its field
-    elif line.startswith('B'):
-        everything[7] = line[1:]
-
-    # Current date starts with D. Put it into the 6th field
-    elif line.startswith('D'):
-        everything[9] = line[1:]
-
-    return everything
+    return ' '.join(status)
 
 
 def die():
@@ -87,16 +94,16 @@ def die():
 def main():
     """ Start the main app loop """
     with open(FIFO) as f:
+        current_status = list(LAYOUT)
         while True:
             for line in f:
-                line_s = line.strip()
-                if len(line_s) > 0:
-                    output = build(everything, line_s)
-                    bar.stdin.write(' '.join(output) + '\n')
+                stripped_line = line.strip()
+                if len(stripped_line) > 0:
+                    output = parse(current_status, stripped_line)
+                    bar.stdin.write(output + '\n')
                 sleep(0.1)
 
 
-# Start the program, trap SIGTERMs so as to kill the bar app.
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, die)
     try:
