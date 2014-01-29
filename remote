@@ -1,0 +1,85 @@
+#!/bin/sh
+# Uncopyrighted. By Enric Morales. 2012
+
+FONT='Source Code Pro'
+FONT_SIZE=14
+REMOTE_HOST=vega
+SCREEN_WIDTH=$(sres -W)
+
+
+formatSeconds() {
+	local S=${1}
+	((m=S%3600/60))
+	((s=S%60))
+	[ ${#s} == 1 ] && s=0$s	# Add a leading zero if needed
+
+	echo $m:$s
+}
+
+dzenInput() {
+	white='^fg(#CCCCCC)'
+	reset='^fg()'
+
+	echo "now playing..."
+	line1="\"${white}${title}${reset}\" ($duration)"
+	line2="by ${bright}${artist}"
+	line3="on ${bright}${album}"
+
+	echo ""
+	echo "$line1"
+	echo "$line2"
+	echo "$line3"
+	sleep 2
+}
+
+outputNowPlaying() {
+	if [ -n "$title" ]; then
+		(dzenInput) | \
+			dzen2 \
+			-fn "${FONT}:pixelsize=${FONT_SIZE}" \
+			-fg '#AAAAAA' \
+			-bg '#34322E' \
+			-l 4 \
+			-ta r \
+			-sa r \
+			-e onstart=uncollapse \
+			-geometry 300x20 \
+			-w 300 -x 970 -y 24
+
+	fi
+}
+
+parseField() {
+	out="$1"
+	regex="$2 (.*)"
+	echo -e "$out" | pcregrep -o1 "$regex"
+}
+
+getTags() {
+	out=$($CMD -Q)
+	artist=$(parseField "$out" "tag artist")
+	album=$(parseField "$out" "tag album")
+	title=$(parseField "$out" "tag title")
+	duration=$(formatSeconds $(parseField "$out" "duration"))
+}
+
+
+if pgrep -u $UID cmus >/dev/null; then
+	CMD="cmus-remote"
+elif ssh $REMOTE_HOST pgrep -u $UID cmus>/dev/null; then
+	CMD="ssh $REMOTE_HOST cmus-remote"
+else
+	echo "Couldn't find a cmus instance to control."
+	exit 1
+fi
+
+
+case $1 in
+	pause) $CMD --pause ;;
+	next)  $CMD --next ;;
+	prev)  $CMD --prev ;;
+	stop)  $CMD --stop ;;
+esac
+
+getTags
+outputNowPlaying
