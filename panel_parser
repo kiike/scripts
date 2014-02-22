@@ -7,7 +7,7 @@ import signal
 
 FIFO = '/tmp/panel.fifo'
 
-SEPARATOR = '\\f8 | \\fr'
+SEPARATOR = '  '
 CENTER = '\c'
 RIGHT = '\\r'
 
