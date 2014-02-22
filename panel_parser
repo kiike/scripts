@@ -131,7 +131,7 @@ def parse(status, line):
     return ' '.join(status)
 
 
-def die():
+def die(*args):
     """ Kill all the children and exit gracefully """
     print("Killing bar (" + str(bar.pid) + ")")
     bar.kill()
@@ -153,14 +153,12 @@ def main():
 
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, die)
+
+    # Make the bar and get the input from the PIPE
+    bar = Popen(['bar', '-p'], stdin=PIPE,
+                universal_newlines=True)
     try:
-        # Make the bar and get the input from the PIPE
-        bar = Popen(['bar', '-p'], stdin=PIPE,
-                    universal_newlines=True)
-
-        # Start the program
         main()
-
     # Capture Ctrl+C
     except KeyboardInterrupt:
         die()
