@@ -36,7 +36,6 @@ def main():
     with open(fifo, mode='w') as f:
         for app in enabled_apps:
             command = apps[app].split()
-            print(command)
 
             # Spawn the process
             child = subprocess.Popen(command,
@@ -58,9 +57,9 @@ def check():
         return True
 
 
-def die():
+def die(*args):
     for app in active_apps:
-        print('Killing', app, flush=True)
+        print('Killing', app.pid, flush=True)
         app.kill()
 
     print('Cleaning up...', flush=True)
