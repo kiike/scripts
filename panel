@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # A script that will start and manage the processes
-# that feed the dzen2 panel
+# that feed the bar-aint-recursive panel maker (./panel_parser)
 
 import signal
 import subprocess
@@ -52,7 +52,7 @@ def main():
 
 def check():
     """ Check if another instance is running. """
-    pgrep = subprocess.call(["pgrep", "panel_feeder"])
+    pgrep = subprocess.call(["pgrep", "-u", os.getenv("USER"), "panel"])
     if pgrep == 1:
         return True
 
