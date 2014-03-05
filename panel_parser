@@ -21,28 +21,28 @@ ICONS = {'date': '\ue038',
          'keyboard': '\ue098',
          'mail': '\ue0a5'}
 
-COLORS_FG = {'RED': '\\f1',
-             'GREEN': '\\f2',
-             'ORANGE': '\\f3',
-             'BLUE': '\\f4',
-             'VIOLET': '\\f5',
-             'CYAN': '\\f6',
-             'WHITE': '\\f7',
-             'GRAY': '\\f8',
-             'BROWN': '\\f9',
-             'RESET': '\\fr'
+COLORS_FG = {'red': '\\f1',
+             'green': '\\f2',
+             'orange': '\\f3',
+             'blue': '\\f4',
+             'violet': '\\f5',
+             'cyan': '\\f6',
+             'white': '\\f7',
+             'gray': '\\f8',
+             'brown': '\\f9',
+             'reset': '\\fr'
              }
 
-COLORS_BG = {'RED': '\\b1',
-             'GREEN': '\\b2',
-             'ORANGE': '\\b3',
-             'BLUE': '\\b4',
-             'VIOLET': '\\b5',
-             'CYAN': '\\b6',
-             'WHITE': '\\b7',
-             'GRAY': '\\b8',
-             'BROWN': '\\b9',
-             'RESET': '\\br'
+COLORS_BG = {'red': '\\b1',
+             'green': '\\b2',
+             'orange': '\\b3',
+             'blue': '\\b4',
+             'violet': '\\b5',
+             'cyan': '\\b6',
+             'white': '\\b7',
+             'gray': '\\b8',
+             'brown': '\\b9',
+             'reset': '\\br'
              }
 
 LAYOUT = ['W', CENTER, 'T', RIGHT, 'M', ICONS['keyboard'],
@@ -59,17 +59,17 @@ def parse_wm_status(line):
     for d in wm_info:
         # Focused {urgent, occupied} desktops
         if d[0] == 'U' or d[0] == 'O' or d[0] == 'F':
-            desktops.append('{}{}{}'.format(COLORS_FG['BLUE'],
+            desktops.append('{}{}{}'.format(COLORS_FG['blue'],
                                             d[1],
-                                            COLORS_FG['RESET']))
+                                            COLORS_FG['reset']))
 
         # Unfocused urgent desktops
         elif d[0] == 'u':
-            desktops.append('{}{}{}{}{}'.format(COLORS_BG['RED'],
-                                                COLORS_FG['WHITE'],
+            desktops.append('{}{}{}{}{}'.format(COLORS_BG['red'],
+                                                COLORS_FG['white'],
                                                 d[1],
-                                                COLORS_FG['RESET'],
-                                                COLORS_BG['RESET']))
+                                                COLORS_FG['reset'],
+                                                COLORS_BG['reset']))
 
         # Unfocused unoccupied desktops
         else:
@@ -107,8 +107,10 @@ def parse_battery(line):
     else:
         return ICONS['battery_low']
 
+
 def parse_other(line):
     return line[1:]
+
 
 def parse(status, line):
     """
