@@ -1,11 +1,5 @@
-#!/usr/bin/env python3
-
-from time import sleep
+# Processes the strings it gets from the queue and builds the panel bar.
 from subprocess import Popen, PIPE
-from sys import exit
-import signal
-
-FIFO = '/tmp/panel.fifo'
 
 SEPARATOR = '  '
 CENTER = '\c'
@@ -47,6 +41,7 @@ COLORS_BG = {'red': '\\b1',
 
 LAYOUT = ['W', CENTER, 'T', RIGHT, 'M', ICONS['keyboard'],
           'K', SEPARATOR, 'B', SEPARATOR, ICONS['date'], 'D']
+
 
 def parse_wm_status(line):
     wm_info = line[1:].split(':')
@@ -91,13 +86,13 @@ def parse_mail_count(line):
     if line[1:] != '0':
         output = '{} {}'.format(ICONS['mail'], SEPARATOR)
     else:
-        output =  ''
+        output = ''
 
     return output
 
 
 def parse_battery(line):
-    charge = int(line[1:-1])
+    charge = int(line[1:])
     if charge > 80:
         return ICONS['battery_full']
     elif charge > 60:
@@ -133,34 +128,12 @@ def parse(status, line):
     return ' '.join(status)
 
 
-def die(*args):
-    """ Kill all the children and exit gracefully """
-    print("Killing bar (" + str(bar.pid) + ")")
-    bar.kill()
-    exit()
-
-
-def main():
+def main(queue):
     """ Start the main app loop """
-    with open(FIFO) as f:
-        current_status = list(LAYOUT)
-        while True:
-            for line in f:
-                stripped_line = line.strip()
-                if len(stripped_line) > 0:
-                    output = parse(current_status, stripped_line)
-                    bar.stdin.write(output + '\n')
-                sleep(0.1)
-
-
-if __name__ == '__main__':
-    signal.signal(signal.SIGTERM, die)
-
-    # Make the bar and get the input from the PIPE
     bar = Popen(['bar', '-p'], stdin=PIPE,
                 universal_newlines=True)
-    try:
-        main()
-    # Capture Ctrl+C
-    except KeyboardInterrupt:
-        die()
+    current_status = list(LAYOUT)
+    while True:
+        item = queue.get()
+        output = parse(current_status, item)
+        bar.stdin.write(output + '\n')
