@@ -1,8 +1,32 @@
-#!/bin/bash
+#!/usr/bin/python
 # A small pandoc wrapper
 
-TEMPLATE="$(dirname $0)/any2pdf.template"
+import subprocess
+from sys import argv, exit
+from os import path
+from shlex import split
 
-pandoc -o ${1%%.*}.pdf \
-	--template $TEMPLATE \
-	$1
+def main():
+    arguments = argv
+    filename = arguments.pop(-1)
+    script = argv.pop(0)
+
+    if len(arguments) == 0:
+        arguments = ''
+
+    template = path.join(path.dirname(script), 'any2pdf.template')
+    outfile = path.splitext(filename)[0] + '.pdf'
+    cmd = 'pandoc -o {} --template {} {} {}'.format(outfile,
+                                                    template,
+                                                    arguments,
+                                                    filename)
+    print(cmd)
+
+    subprocess.call(split(cmd))
+
+
+if __name__ == '__main__':
+    if len(argv) > 1:
+        main()
+    else:
+        exit('Usage: any2pdf <filename>')
