@@ -1,0 +1,5 @@
+#!/bin/bash
+# Runs commands in a new terminal emulator
+
+cmd="$(dmenu_path | dmenu)"
+urxvtc -title "${cmd:1}" -e "$cmd"
