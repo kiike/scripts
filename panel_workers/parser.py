@@ -1,9 +1,6 @@
 # Processes the strings it gets from the queue and builds the panel bar.
 from subprocess import Popen, PIPE
-
-SEPARATOR = '  '
-CENTER = '\c'
-RIGHT = '\\r'
+from shlex import split
 
 # These are unicode private use area codes, for use with Typicons font.
 ICONS = {'date': '\ue038',
@@ -15,36 +12,52 @@ ICONS = {'date': '\ue038',
          'keyboard': '\ue098',
          'mail': '\ue0a5'}
 
-COLORS_FG = {'red': '\\f1',
-             'green': '\\f2',
-             'orange': '\\f3',
-             'blue': '\\f4',
-             'violet': '\\f5',
-             'cyan': '\\f6',
-             'white': '\\f7',
-             'gray': '\\f8',
-             'brown': '\\f9',
-             'reset': '\\fr'
-             }
 
-COLORS_BG = {'red': '\\b1',
-             'green': '\\b2',
-             'orange': '\\b3',
-             'blue': '\\b4',
-             'violet': '\\b5',
-             'cyan': '\\b6',
-             'white': '\\b7',
-             'gray': '\\b8',
-             'brown': '\\b9',
-             'reset': '\\br'
-             }
+def color(mode, color, message='', reset=False):
+    colors = {'red': '#fffb9fb1',
+              'green': '#ffacc267',
+              'yellow': '#ffddb26f',
+              'blue': '#ff6fc2ef',
+              'violet': '#ffe1a3ee',
+              'cyan': '#ff12cfc0',
+              'white': '#ffd0d0d0',
+              'gray': '#ff151515',
+              'reset': '-'
+              }
 
-LAYOUT = ['W', CENTER, 'T', RIGHT, 'M', ICONS['keyboard'],
-          'K', SEPARATOR, 'B', SEPARATOR, ICONS['date'], 'D']
+    if mode == 'fg':
+        result = '{}{}{}{}'.format('%{F', colors[color], '}', message)
+        if reset:
+            return '{}{}{}{}'.format(result, '%{F', colors['reset'], '}')
+        else:
+            return result
+
+    elif mode == 'bg':
+        result = '{}{}{}{}'.format('%{B', colors[color], '}', message)
+        if reset:
+            return '{}{}{}{}'.format(result, '%{B', colors['reset'], '}')
+        else:
+            return result
 
 
-def parse_wm_status(line):
-    wm_info = line[1:].split(':')
+SEPARATOR = color('fg', 'blue', ' \u2502 ', reset=True)
+CENTER = '%{c}'
+RIGHT = '%{r}'
+
+LAYOUT = ['W', SEPARATOR, CENTER, 'T',
+          RIGHT, SEPARATOR, 'M', ICONS['keyboard'],
+          'K', ' ', 'B', ' ', ICONS['date'], 'D']
+
+MAIN_FONT = '-misc-dejavu sans-medium-r-normal--12-0-0-0-p-0-iso10646-1'
+ALT_FONT = '-misc-typicons-medium-r-normal--12-80-100-100-p-60-iso10646-1'
+BAR_FG = '-F #FFD0D0D0'
+BAR_BG = '-B #80151515'
+COMMAND = 'bar -p -f "{},{}" {} {}'.format(MAIN_FONT, ALT_FONT,
+                                           BAR_BG, BAR_FG)
+
+
+def parse_wm_status(contents):
+    wm_info = contents.split(':')
     # Remove monitor label
     wm_info.pop(0)
     # Remove current tiling mode
@@ -54,17 +67,14 @@ def parse_wm_status(line):
     for d in wm_info:
         # Focused {urgent, occupied} desktops
         if d[0] == 'U' or d[0] == 'O' or d[0] == 'F':
-            desktops.append('{}{}{}'.format(COLORS_FG['blue'],
-                                            d[1],
-                                            COLORS_FG['reset']))
+            desktops.append(color('fg', 'blue', d[1], reset=True))
 
         # Unfocused urgent desktops
         elif d[0] == 'u':
-            desktops.append('{}{}{}{}{}'.format(COLORS_BG['red'],
-                                                COLORS_FG['white'],
-                                                d[1],
-                                                COLORS_FG['reset'],
-                                                COLORS_BG['reset']))
+            desktops.append(color('bg', 'red',
+                                  color('bg', 'white',
+                                        d[1], reset=True),
+                                  reset=True))
 
         # Unfocused unoccupied desktops
         else:
@@ -73,26 +83,26 @@ def parse_wm_status(line):
     return ' '.join(desktops)
 
 
-def parse_win_title(line):
-    if len(line) > 69:
-        output = '{0}...'.format(line[1:69])
+def parse_win_title(contents):
+    if len(contents) > 72:
+        output = '{}\u2026'.format(contents[:72])
     else:
-        output = line[1:]
+        output = contents
 
     return output
 
 
-def parse_mail_count(line):
-    if line[1:] != '0':
-        output = '{} {}'.format(ICONS['mail'], SEPARATOR)
+def parse_mail_count(contents):
+    if contents != '0':
+        output = '{} '.format(ICONS['mail'])
     else:
         output = ''
 
     return output
 
 
-def parse_battery(line):
-    charge = int(line[1:])
+def parse_battery(contents):
+    charge = int(contents)
     if charge > 80:
         return ICONS['battery_full']
     elif charge > 60:
@@ -103,19 +113,18 @@ def parse_battery(line):
         return ICONS['battery_low']
 
 
-def parse_other(line):
-    return line[1:]
+def parse_other(contents):
+    return contents
 
 
-def parse(status, line):
+def parse(status, item):
     """
-    Substitute a part of the "status" list for a parsed version of "line"
+    Substitute a part of the input list for a parsed version of the "item"
 
-    [list], str -> str
+    [list] -> [list]
     """
 
-    prefix = line[0]
-
+    prefix, contents = item[0], item[1:]
     handler_for = {'W': parse_wm_status,
                    'M': parse_mail_count,
                    'T': parse_win_title,
@@ -123,17 +132,24 @@ def parse(status, line):
                    'D': parse_other,
                    'K': parse_other}
 
-    status[LAYOUT.index(prefix)] = handler_for[prefix](line)
+    if prefix in handler_for:
+        status[LAYOUT.index(prefix)] = handler_for[prefix](contents)
 
-    return ' '.join(status)
+    return status
 
 
 def main(queue):
     """ Start the main app loop """
-    bar = Popen(['bar', '-p'], stdin=PIPE,
+    bar = Popen(split(COMMAND),
+                stdin=PIPE,
+                bufsize=-1,
+                stdout=None,
                 universal_newlines=True)
-    current_status = list(LAYOUT)
+    status = list(LAYOUT)
     while True:
         item = queue.get()
-        output = parse(current_status, item)
-        bar.stdin.write(output + '\n')
+        status = parse(status, item)
+        #print(status)
+        bar.stdin.write(''.join(status))
+        bar.stdin.write('\n')
+        bar.stdin.flush()

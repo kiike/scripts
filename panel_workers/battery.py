@@ -17,6 +17,5 @@ def main(queue, prefix='B'):
     BATTERY_PATH = '/sys/class/power_supply/BAT0/'
     while True:
         charge = get_battery_charge(BATTERY_PATH)
-        output = '{}{}'.format(prefix, charge)
-        queue.put(output)
+        queue.put('{}{}'.format(prefix, charge))
         sleep(60)

@@ -2,7 +2,6 @@
 # A script that will start and manage the processes
 # that feed the bar-aint-recursive panel maker (./panel_parser)
 
-
 import subprocess
 from queue import Queue
 from threading import Thread
@@ -33,10 +32,16 @@ active_apps, active_modules = [], []
 
 def enqueue_stdout(out, queue):
     while True:
-        data = out.readline().strip()
+        try:
+            data = out.readline()
+        except UnicodeDecodeError:
+            print('{}{}'.format('Found error when decoding string:',
+                              repr(data)))
+
         if not data:
             sleep(0.1)
         else:
+            data = data.strip()
             queue.put(data)
 
 
