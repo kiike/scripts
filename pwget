@@ -1,0 +1,5 @@
+#!/bin/bash
+
+FILE=$HOME/FILE
+
+jshon -e $1 < $FILE | sed '{1d; s/^[ \t]*//; $d}'

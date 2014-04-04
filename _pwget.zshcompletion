@@ -1,0 +1,4 @@
+#compdef pwget
+local -a keys
+keys=($(jshon -k < ~/FILE))
+_values 'keys' "$keys[@]"
