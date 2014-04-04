@@ -34,15 +34,13 @@ def enqueue_stdout(out, queue):
     while True:
         try:
             data = out.readline()
+            if not data:
+                sleep(0.1)
+            else:
+                data = data.strip()
+                queue.put(data)
         except UnicodeDecodeError:
-            print('{}{}'.format('Found error when decoding string:',
-                              repr(data)))
-
-        if not data:
-            sleep(0.1)
-        else:
-            data = data.strip()
-            queue.put(data)
+            print('Found error when decoding string:', repr(data))
 
 
 def main():
