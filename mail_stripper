@@ -1,0 +1,42 @@
+#!env python3
+#
+# This is a script to strip email attachments from all the files found in the
+# arguments.
+
+import email
+import sys
+
+REPLACE_TEXT = '''The attachment "{filename}" ({type}, {size:.0f} KiB) has been
+deleted by `mail_stripper`. To recover it, on the next blood moon, place the
+corpse of a virgin unicorn where the rainbows meet the Earth.  '''
+
+
+def strip_attachments(e):
+    for i in e.get_payload():
+        if i.get_content_type() != 'text/plain':
+            i.set_payload(REPLACE_TEXT.format(type=i.get_content_type(),
+                                              size=len(bytes(i)) / 1024 ,
+                                              filename=i.get_filename()))
+            del i['Content-Disposition']
+            i.set_type('text/plain')
+
+    email.encoders.encode_7or8bit(e)
+    return e.as_bytes()
+
+
+def main():
+    for message in args:
+        with open(message, mode='rb') as f:
+            e = email.message_from_binary_file(f)
+            e = strip_attachments(e)
+
+        with open(message, mode='w+b') as f:
+            f.write(e)
+
+
+if __name__ == '__main__':
+    args = sys.argv[1:]
+    if len(args) < 2:
+        sys.exit('USAGE: mail_stripper <msg_file> [msg_files]')
+    else:
+        main()
