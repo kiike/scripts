@@ -12,6 +12,9 @@ corpse of a virgin unicorn where the rainbows meet the Earth.  '''
 
 
 def strip_attachments(e):
+    if e.is_multipart():
+        continue
+
     for i in e.get_payload():
         if i.get_content_type() != 'text/plain':
             i.set_payload(REPLACE_TEXT.format(type=i.get_content_type(),
