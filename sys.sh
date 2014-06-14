@@ -1,30 +1,24 @@
 #!/bin/sh
+# System info for Tmux
 
-arch=$(uname -m)
+TEMP_PATH="/sys/class/thermal/thermal_zone0"
+BATT_PATH="/sys/class/power_supply/BAT0/"
 
-if [ "$arch" == "armv6l" ]; then
-	T="$(cat /sys/class/thermal/thermal_zone0/temp)"
-	cpu_temp=${T::-3}
-
-elif [ "$arch" == "ppc" ] || [ "$arch" == "ppc64" ]; then
-	cat /proc/pmu/battery_0 | tr -d ' .' | tr ':' '=' > /tmp/battery_0
-	source /tmp/battery_0
-	T="/sys/devices/temperatures/"
-	fan="$(cat $T/sensor1_fan_speed | cut -f2-3 -d' ' | tr -d ' ()')"
-	cpu_temp="$(cat $T/sensor1_temperature)ºC"
-	gpu_temp="$(cat $T/sensor2_temperature)ºC"
-	bat="$((100 * $charge / $max_charge))"
-	
-elif [ "$arch" == "i686" ] || [ "$arch" == "x86_64" ]; then
-	max_charge=$(cat /sys/class/power_supply/BAT0/energy_full)
-	cur_charge=$(cat /sys/class/power_supply/BAT0/energy_now)
-	bat="$((100 * $cur_charge / $max_charge))%"
-	T="/sys/class/thermal/"
-	fan="$(cat $T/sensor1_fan_speed | cut -f2-3 -d' ' | tr -d ' ()')"
-	cpu_temp_full=$(cat $T/thermal_zone0/temp)
-	cpu_temp=${cpu_temp_full%000}
+# Print CPU temperature
+if [ -d ${TEMP_PATH} ]; then
+	temp="$(< ${TEMP_PATH}/temp)"
+	cpu_temp=${temp::-3}
+	echo -n "CPU: ${cpu_temp}degC | "
 fi
-	
-test -z $fan || echo -n "f:$fan | " 
-test -z $cpu_temp || echo -n "t:${cpu_temp}C | "
-test -z $bat || echo -n "↯${bat}% | "
+
+
+# Print battery charge
+if [ -d ${BATT_PATH} ]; then
+	max_charge="$(< ${BATT_PATH}/energy_full)"
+	cur_charge="$(< ${BATT_PATH}/energy_now)"
+	bat="$((100 * $cur_charge / $max_charge))"
+	echo -n "↯${bat}% | "
+fi
+
+# Print date
+date '+%a %d %b, %H:%M'
