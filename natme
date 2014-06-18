@@ -1,9 +1,9 @@
 #!/bin/sh
 
-IN=eth0
-OUT=wlan0
+IN=wlan0
+OUT=eth0
 
 echo 1 > /proc/sys/net/ipv4/ip_forward
-iptables -t nat -A POSTROUTING -o $OUT -j MASQUERADE
-iptables -A FORWARD -i $IN -o $OUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -t nat -A POSTROUTING -o $IN -j MASQUERADE
 iptables -A FORWARD -i $IN -o $OUT -j ACCEPT
+iptables -A FORWARD -i $OUT -o $IN -j ACCEPT
