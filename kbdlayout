@@ -1,43 +1,27 @@
-#!/bin/bash
-
-PREFIX="K"
-source $(dirname $0)/bspwm/panel.conf
+#!/bin/sh
 
 _get_cur_layout() {
-# Get current layout
-    setxkbmap_out=$(setxkbmap -query)
-    regex='layout: +(..)'
-    if [[ "$setxkbmap_out" =~ $regex ]]; then
-        current_layout=${BASH_REMATCH[1]}
-        echo "$current_layout"
-    fi
-}
-
-_fifo_output() {
-    if [[ -p $PANEL_FIFO ]]; then
-        echo "${PREFIX}$1" > $PANEL_FIFO
-    fi
+    regex="layout: +(\w\w)"
+    setxkbmap -query | pcregrep -o1 "$regex"
 }
 
 if [[ "$1" == "get" ]]; then
-    echo ${PREFIX}$(_get_cur_layout)
+    echo $(_get_cur_layout)
     exit 0
+else
+    case $(_get_cur_layout) in
+        es) setxkbmap us
+            xmodmap ~/.Xmodmaprc
+            xmodmap -e "keysym Alt_R = Hangul"
+            _fifo_output "$(_get_cur_layout)"
+            ;;
+
+        us) setxkbmap es
+            xmodmap ~/.Xmodmaprc
+            _fifo_output "$(_get_cur_layout)"
+            ;;
+    esac
 fi
 
-
-# If the current layout is 'es', change to 'us', and viceversa,
-# load the Xmodmap configuration and output it to bspwm's panel FIFO
-case $(_get_cur_layout) in
-    es) setxkbmap us
-        xmodmap ~/.Xmodmaprc
-        xmodmap -e 'keysym Alt_R = Hangul'
-        _fifo_output "$(_get_cur_layout)"
-        ;;
-
-    us) setxkbmap es
-        xmodmap ~/.Xmodmaprc
-        _fifo_output "$(_get_cur_layout)"
-        ;;
-esac
 
 # vim: sts=4 ts=4 et sw=4
