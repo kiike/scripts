@@ -1,0 +1,43 @@
+#! /bin/sh
+#
+
+. ~/.panelrc
+
+while read -r line ; do
+	case $line in
+		S*)
+			# clock output
+			sys_infos=" ${line#?} "
+			;;
+		T*)
+			# xtitle output
+			title=" ${line#?}"
+			;;
+		W*)
+			# bspwm internal state
+			wm_infos=""
+			IFS=':'
+			set -- ${line#?}
+			while [ $# -gt 0 ] ; do
+				item=$1
+				name=${item#?}
+				case $item in
+					O*|U*|F*)
+						# focused occupied desktop
+						wm_infos="${wm_infos}%{F$COLOR_FOCUSED_FG}%{B$COLOR_FOCUSED_BG} ${name} %{B-}%{F-}"
+						;;
+					o*|f*)
+						# Other
+						wm_infos="${wm_infos} ${name} "
+						;;
+					u*)
+						# urgent desktop
+						wm_infos="${wm_infos}%{F$COLOR_URGENT_FG}%{B$COLOR_URGENT_BG} ${name} %{B-}%{F-}"
+						;;
+				esac
+				shift
+			done
+			;;
+	esac
+	echo "%{l}${wm_infos}%{c}${title}%{r}${sys_infos}"
+done
