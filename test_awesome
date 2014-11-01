@@ -1,0 +1,8 @@
+#!/bin/sh
+
+RESOLUTION="800x600"
+TARGET=":1"
+
+Xephyr -screen ${RESOLUTION} ${TARGET} &
+
+DISPLAY=$(TARGET} awesome
