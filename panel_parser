@@ -1,5 +1,4 @@
 #! /bin/sh
-#
 
 . ~/.panelrc
 
@@ -11,7 +10,8 @@ while read -r line ; do
 			;;
 		T*)
 			# xtitle output
-			title=" ${line#?}"
+			title="${line#?}"
+			[[ ${#title} -gt 72 ]] && title="${title:0:72}…"
 			;;
 		W*)
 			# bspwm internal state
@@ -24,7 +24,7 @@ while read -r line ; do
 				case $item in
 					O*|U*|F*)
 						# focused occupied desktop
-						wm_infos="${wm_infos}%{F$COLOR_FOCUSED_FG}%{B$COLOR_FOCUSED_BG} ${name} %{B-}%{F-}"
+						wm_infos=" ${wm_infos}%{F$COLOR_FOCUSED_FG}%{B$COLOR_FOCUSED_BG}${name}%{B-}%{F-} "
 						;;
 					o*|f*)
 						# Other
@@ -39,5 +39,6 @@ while read -r line ; do
 			done
 			;;
 	esac
-	echo "%{l}${wm_infos}%{c}${title}%{r}${sys_infos}"
+	echo "%{l}${wm_infos}$ITEM_SEPARATOR%{c}${title}%{r}$ITEM_SEPARATOR${sys_infos} " | sed 's/  / /g'
+	echo "%{l}${wm_infos}$ITEM_SEPARATOR%{c}${title}%{r}$ITEM_SEPARATOR${sys_infos}" >> /tmp/test.dump
 done
