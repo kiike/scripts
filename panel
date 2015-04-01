@@ -19,11 +19,11 @@ fi
 bspc config top_padding $PANEL_HEIGHT
 bspc control --subscribe > "$PANEL_FIFO" &
 xtitle -sf 'T%s' > "$PANEL_FIFO" &
-clock -sf 'S%a %H:%M' > "$PANEL_FIFO" &
+clock -sf "S${DATE_FORMAT}" > "$PANEL_FIFO" &
 
 cat "$PANEL_FIFO" \
 	| panel_parser \
-	| bar \
+	| lemonbar \
 		-f "$PANEL_FONT_FAMILY" \
 		-F "$COLOR_DEFAULT_FG" \
 		-B "$COLOR_DEFAULT_BG" &
