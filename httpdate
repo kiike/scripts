@@ -1,0 +1,13 @@
+#!/bin/sh
+# Get date from HTTP server, and
+
+SERVER="ub.edu"
+
+get_date() {
+	curl -sI "${SERVER}" \
+		| grep '^Date:' \
+		| cut -d' ' -f3-6
+}
+
+DATE="$(get_date)Z"
+date -s "$DATE"
