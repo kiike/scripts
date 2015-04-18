@@ -1,0 +1,8 @@
+#!/bin/bash
+# Print the file modification date with the format
+# YYYYMMDDThhmmss
+
+for file in $1; do
+	file_date=$(date --reference="${file}" '+%Y%m%dT%H%M%S')
+	echo ${file_date}
+done
