@@ -1,0 +1,21 @@
+#!/bin/sh
+# Fetch METAR for a given station.
+# Example: `metar LEBL LEZL' will fetch METARs
+# for Barcelona and Sevilla airports respectively
+
+BASE_URL="http://weather.noaa.gov/pub/data/"
+
+if [[ $1 == "decode" ]] || [[ $1 == "-d" ]]; then
+	_type="decoded"
+	shift
+else
+	_type="stations"
+fi
+
+
+for station in $*; do
+	station="$(echo $station | tr [:lower:] [:upper:])"
+	curl "${BASE_URL}/observations/metar/${_type}/${station}.TXT"
+	curl "${BASE_URL}/forecasts/taf/stations/${station}.TXT"
+	echo
+done
