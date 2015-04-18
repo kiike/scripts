@@ -16,9 +16,9 @@ getmute() {
 		egrep dB | cut -d ' ' -f 8 | \
 		tr -d '[]') == "on" ]
 	then
-		echo "off"
+		echo "unmuted"
 	else
-		echo "on"
+		echo "muted"
 	fi
 }
 
