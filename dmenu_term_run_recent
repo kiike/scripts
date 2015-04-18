@@ -1,0 +1,16 @@
+#!/bin/sh
+# Sort dmenu items by usage, run dmenu item in terminal.
+# Copyright 2009-2013 Tom Vincent <http://tlvince.com/contact/>
+# Modified by Enric Morales 2015
+
+CACHE="${HOME}/.cache/dmenu_term_run}"
+
+frequent=$([ -f "$CACHE" ] && sort "$CACHE" | uniq -c | sort -rn | colrm 1 8)
+
+_dmenu() {
+{ echo "$frequent"; dmenu_path \
+	| grep -vxF "$frequent"; } \
+       	| dmenu "$@" | tee -a "$CACHE"
+}
+
+urxvt -e "$(_dmenu)"
