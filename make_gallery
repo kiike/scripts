@@ -1,0 +1,10 @@
+#!/bin/bash
+# Make a gallery for lightGallery https://github.com/sachinchoolur/lightGallery
+# Run it inside vim when editing index.html
+
+echo '<ul id="lightGallery">'
+for i in $*; do
+	echo "  <li data-src=\"$i\">"
+	echo "    <img src=\"thumb-$i\" />"
+	echo "  </li>"
+done
