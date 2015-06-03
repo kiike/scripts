@@ -1,18 +1,31 @@
-#!/bin/sh
+#!/bin/bash
+
+source ~/.panelrc
 
 _get_cur_layout() {
-    regex="layout: +(\w\w)"
-    setxkbmap -query | pcregrep -o1 "$regex"
+    setxkbmap_out=$(setxkbmap -query)
+    regex='layout: +(..)'
+    if [[ "$setxkbmap_out" =~ $regex ]]; then
+        current_layout=${BASH_REMATCH[1]}
+        echo "$current_layout"
+    fi
+}
+
+_fifo_output() {
+    if [[ -p $PANEL_FIFO ]]; then
+        echo "$KBD_LAYOUT_PREFIX $1" > $PANEL_FIFO
+    fi
 }
 
 if [[ "$1" == "get" ]]; then
-    echo $(_get_cur_layout)
-    exit 0
+    _fifo_output "$(_get_cur_layout)"
 else
+    # If the current layout is 'es', change to 'us', and viceversa,
+    # load the Xmodmap configuration and output it to bspwm's panel FIFO
     case $(_get_cur_layout) in
         es) setxkbmap us
             xmodmap ~/.Xmodmaprc
-            xmodmap -e "keysym Alt_R = Hangul"
+            xmodmap -e 'keysym Alt_R = Hangul'
             _fifo_output "$(_get_cur_layout)"
             ;;
 
@@ -22,6 +35,3 @@ else
             ;;
     esac
 fi
-
-
-# vim: sts=4 ts=4 et sw=4
