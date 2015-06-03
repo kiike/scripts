@@ -3,7 +3,7 @@
 # Copyright 2009-2013 Tom Vincent <http://tlvince.com/contact/>
 # Modified by Enric Morales 2015
 
-CACHE="${HOME}/.cache/dmenu_term_run}"
+CACHE="${HOME}/.cache/dmenu_term_run"
 
 frequent=$([ -f "$CACHE" ] && sort "$CACHE" | uniq -c | sort -rn | colrm 1 8)
 
