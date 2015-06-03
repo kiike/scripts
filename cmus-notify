@@ -1,0 +1,31 @@
+#!/bin/sh
+# Cmus status notifier. Call from within cmus via
+# the configuration variable status_display_program
+# Based on the example script
+
+notify() {
+	notify-send cmus "$1"
+}
+
+while (( $# >= 2 )); do
+	declare _$1="$2"
+	shift 2
+done
+
+h=$((${_duration} / 3600))
+m=$(($_duration / 60))
+s=$(($_duration % 60))
+
+(( ${h} > 0 )) && f_duration="${h}:" || f_duration=""
+f_duration="${f_duration}$(printf "%0.2d:%0.2d" ${m} ${s})"
+
+[[ -n $_date ]] && _date="($_date)"
+
+if [[ -n "$_file" ]]; then
+	notify "[$_status]\n\"${_title}\" (${f_duration})\nby $_artist\non $_album $_date"
+
+elif [[ -n "$_url" ]]; then
+	notify "[$_status] $_url - $_title"
+else
+	notify "[$_status]"
+fi
