@@ -2,21 +2,6 @@
 # Uncopyrighted. By Enric Morales. 2014
 # Control a running cmus instance and output its info via notify-send
 
-_format_seconds() {
-	local S=${1}
-	((m=S%3600/60))
-	((s=S%60))
-	[ ${#s} == 1 ] && s=0$s	# Add a leading zero if needed
-
-	echo $m:$s
-}
-
-_parse() {
-	out="$1"
-	regex="$2 (.*)"
-	echo -e "$out" | pcregrep -o1 "$regex"
-}
-
 if ! pgrep -u $UID cmus >/dev/null; then
 	notify-send "remote" "No instance of cmus found."
 	exit 1
@@ -29,16 +14,3 @@ case $1 in
 	prev)  cmus-remote $CMD --prev ;;
 	stop)  cmus-remote $CMD --stop ;;
 esac
-
-
-out=$(cmus-remote -Q)
-artist=$(_parse "$out" "tag artist")
-album=$(_parse "$out" "tag album")
-title=$(_parse "$out" "tag title")
-duration=$(_format_seconds $(_parse "$out" "duration"))
-
-[[ -n "${title}" ]] && info="\"${title}\""
-[[ -n "${duration}" ]] && info="${info} (${duration})"
-[[ -n "${artist}" ]] && info="${info}\nby ${artist}"
-
-notify-send "now playing..." "${info}"
