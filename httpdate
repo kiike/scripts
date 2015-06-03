@@ -1,5 +1,5 @@
 #!/bin/sh
-# Get date from HTTP server, and
+# Get date from HTTP server
 
 SERVER="ub.edu"
 
