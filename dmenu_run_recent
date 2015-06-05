@@ -1,0 +1,10 @@
+#!/bin/sh
+# Sort dmenu items by usage.
+# Copyright 2009-2013 Tom Vincent <http://tlvince.com/contact/>
+
+CACHE="${CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/dmenu_run}"
+[ -f "$CACHE" ] && CACHE="${CACHE}_recent" || CACHE="$HOME/.dmenu_cache_recent"
+
+frequent=$([ -f "$CACHE" ] && sort "$CACHE" | uniq -c | sort -rn | colrm 1 8)
+{ echo "$frequent"; dmenu_path | grep -vxF "$frequent"; } | \
+  dmenu "$@" | tee -a "$CACHE" | "${SHELL:-/bin/sh}" &
