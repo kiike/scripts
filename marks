@@ -14,6 +14,7 @@ parser.add_argument('--uri', '-u', help="Find by URI")
 parser.add_argument('--title', '-t', help="Find by title")
 args = parser.parse_args()
 
+
 req_tag, req_title, req_uri, file = args.tag, args.title, args.uri, args.file
 
 with open(os.path.expanduser(file)) as f:
@@ -21,8 +22,9 @@ with open(os.path.expanduser(file)) as f:
 
     if req_tag is not None:
         for entry in json_struct:
-            if req_tag in entry.get('tags'):
-                print(entry.get('uri'))
+            for tag in entry.get('tags'):
+                if req_tag in tag:
+                    print(entry.get('uri'))
 
     if req_title is not None:
         for entry in json_struct:
