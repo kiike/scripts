@@ -20,10 +20,12 @@ def walk(struct, depth=0):
                 else:
                     tag_l = []
 
-                my_marks.append({'title': title,
-                                 'uri': uri,
-                                 'tags': tag_l
-                                 })
+                out_dict = {'title': title,
+                            'uri': uri,
+                            'tags': tag_l
+                            }
+                if out_dict not in my_marks:
+                    my_marks.append(out_dict)
 
             walk(child)
 
@@ -32,4 +34,4 @@ with open("bmarks") as f:
     my_marks = []
     j = json.load(f)
     walk(j)
-    pprint.pprint(my_marks)
+    print(json.dumps(my_marks, indent=2))
