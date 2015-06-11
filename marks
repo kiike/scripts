@@ -12,8 +12,9 @@ def add(json_data, args):
             'uri': args.uri,
             'title': args.title}
     json_data.append(mark)
-    return json.dump(json_data, f, indent=2, ensure_ascii=False)
 
+    with open(args.in_file, mode='w') as f:
+        json.dump(json_data, f, indent=2, ensure_ascii=False)
 
 
 def search(json_data, args):
@@ -21,15 +22,15 @@ def search(json_data, args):
         if args.tag is not None:
             for t in entry.get('tags'):
                 if args.tag in t:
-                    return entry.get('uri')
+                    print(entry.get('uri'))
 
         if args.title is not None:
             if args.title in entry.get('title'.lower()):
-                return entry.get('uri')
+                print(entry.get('uri'))
 
         if args.uri is not None:
             if args.uri in entry.get('uri'):
-                return entry.get('uri')
+                print(entry.get('uri'))
 
 
 def dump(json_data, args):
@@ -79,8 +80,9 @@ parser_add.set_defaults(func=add)
 
 args = parser.parse_args()
 
-with open(os.path.expanduser(args.in_file), mode='r+t') as f:
-    ret = args.func(json.load(f), args)
+with open(os.path.expanduser(args.in_file)) as f:
+    json_data = json.load(f)
+
+    ret = args.func(json_data, args)
     if ret is not None:
-        print(type(ret))
         print(ret)
