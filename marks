@@ -3,35 +3,81 @@ import os
 import json
 import argparse
 
-"""
-A simple bookmark searcher.
-"""
+'''
+A simple bookmark manager.
+'''
+
+def add(json_data, args):
+    mark = {'tags': [tag for tag in args.tags],
+            'uri': args.uri,
+            'title': args.title}
+    json_data.append(mark)
+    return json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+
+def find(json_data, args):
+    for entry in json_data:
+        if args.tag is not None:
+            for t in entry.get('tags'):
+                if args.tag in t:
+                    return entry.get('uri')
+
+        if args.title is not None:
+            if args.title in entry.get('title'.lower()):
+                return entry.get('uri')
+
+        if args.uri is not None:
+            if args.uri in entry.get('uri'):
+                return entry.get('uri')
+
+
+def dump(json_data, args):
+    out = []
+    for entry in json_data:
+        if args.tags:
+            for t in entry.get('tags'):
+                if t not in out:
+                    out.append(t)
+
+        if args.titles:
+            if entry.get('title') not in out:
+                out.append(entry.get('title'))
+
+        if args.uris:
+            if entry.get('uri') not in out:
+                out.append(entry.get('uri'))
+
+    return('\n'.join(out))
+
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--file', '-f', help="Bookmarks file", default="~/.bookmarks")
-parser.add_argument('--tag', '-g', help="Find by tag")
-parser.add_argument('--uri', '-u', help="Find by URI")
-parser.add_argument('--title', '-t', help="Find by title")
+parser.add_argument('--file', '-f', help='Bookmarks file',
+                    dest='in_file', default='~/.bookmarks')
+subparsers = parser.add_subparsers(help='Dump or Find modes')
+
+parser_find = subparsers.add_parser('find')
+parser_find.add_argument('--tag', '-g', help='Find by tag')
+parser_find.add_argument('--uri', '-u', help='Find by URI')
+parser_find.add_argument('--title', '-t', help='Find by title')
+parser_find.set_defaults(func=find)
+
+parser_dump = subparsers.add_parser('dump')
+parser_dump.add_argument('--tags', '-g', action='store_true', help='Dump tags')
+parser_dump.add_argument('--uris', '-u', action='store_true', help='Dump URIs')
+parser_dump.add_argument('--titles', '-t', action='store_true', help='Dump titles')
+parser_dump.set_defaults(func=dump)
+
+parser_add = subparsers.add_parser('add')
+parser_add.add_argument('--tags', '-g', required=True, nargs='+',
+        help='Assign tags')
+parser_add.add_argument('--uri', '-u', required=True, help='Assign an URI')
+parser_add.add_argument('--title', '-t', required=True, help='Assign a title')
+parser_add.set_defaults(func=add)
+
 args = parser.parse_args()
 
-
-req_tag, req_title, req_uri, file = args.tag, args.title, args.uri, args.file
-
-with open(os.path.expanduser(file)) as f:
-    json_struct = json.load(f)
-
-    if req_tag is not None:
-        for entry in json_struct:
-            for tag in entry.get('tags'):
-                if req_tag in tag:
-                    print(entry.get('uri'))
-
-    if req_title is not None:
-        for entry in json_struct:
-            if req_title in entry.get('title'.lower()):
-                print(entry.get('uri'))
-
-    if req_uri is not None:
-        for entry in json_struct:
-            if req_uri in entry.get('uri'):
-                print(entry.get('uri'))
+with open(os.path.expanduser(args.in_file), mode='r+t') as f:
+    ret = args.func(json.load(f), args)
+    if ret is not None:
+        print(type(ret))
+        print(ret)
