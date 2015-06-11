@@ -15,7 +15,8 @@ def add(json_data, args):
     return json.dump(json_data, f, indent=2, ensure_ascii=False)
 
 
-def find(json_data, args):
+
+def search(json_data, args):
     for entry in json_data:
         if args.tag is not None:
             for t in entry.get('tags'):
@@ -53,23 +54,25 @@ def dump(json_data, args):
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', '-f', help='Bookmarks file',
                     dest='in_file', default='~/.bookmarks')
-subparsers = parser.add_subparsers(help='Dump or Find modes')
+subparsers = parser.add_subparsers(help='Available modes',
+        dest='parser')
+subparsers.required=True
 
-parser_find = subparsers.add_parser('find')
-parser_find.add_argument('--tag', '-g', help='Find by tag')
-parser_find.add_argument('--uri', '-u', help='Find by URI')
-parser_find.add_argument('--title', '-t', help='Find by title')
-parser_find.set_defaults(func=find)
+parser_search = subparsers.add_parser('search', aliases=['s'])
+parser_search.add_argument('--tag', '-g', help='Search by tag')
+parser_search.add_argument('--uri', '-u', help='Search by URI')
+parser_search.add_argument('--title', '-t', help='Search by title')
+parser_search.set_defaults(func=search)
 
-parser_dump = subparsers.add_parser('dump')
+parser_dump = subparsers.add_parser('dump', aliases=['d'])
 parser_dump.add_argument('--tags', '-g', action='store_true', help='Dump tags')
 parser_dump.add_argument('--uris', '-u', action='store_true', help='Dump URIs')
 parser_dump.add_argument('--titles', '-t', action='store_true', help='Dump titles')
 parser_dump.set_defaults(func=dump)
 
-parser_add = subparsers.add_parser('add')
+parser_add = subparsers.add_parser('add', aliases=['a'])
 parser_add.add_argument('--tags', '-g', required=True, nargs='+',
-        help='Assign tags')
+                        help='Assign tags')
 parser_add.add_argument('--uri', '-u', required=True, help='Assign an URI')
 parser_add.add_argument('--title', '-t', required=True, help='Assign a title')
 parser_add.set_defaults(func=add)
