@@ -19,7 +19,9 @@ fi
 bspc config top_padding $PANEL_HEIGHT
 bspc control --subscribe > "$PANEL_FIFO" &
 xtitle -sf 'T%s' > "$PANEL_FIFO" &
+uim-eye.py > "$PANEL_FIFO" &
 clock -sf "S${DATE_FORMAT}" > "$PANEL_FIFO" &
+kbdlayout get&
 
 cat "$PANEL_FIFO" \
 	| panel_parser \

@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 
 . ~/.panelrc
 
@@ -6,8 +6,17 @@ while read -r line ; do
 	case $line in
 		S*)
 			# clock output
-			sys_infos=" ${line#?} "
+			sys_infos="\ue039 ${line#?}"
 			;;
+		K*)
+			kbd="\ue098${line#?}"
+			;;
+
+		UIM*)
+			# uim-eye output
+			uim="${line#UIM}"
+			;;
+
 		T*)
 			# xtitle output
 			title="${line#?}"
@@ -24,21 +33,20 @@ while read -r line ; do
 				case $item in
 					O*|U*|F*)
 						# focused occupied desktop
-						wm_infos=" ${wm_infos}%{F$COLOR_FOCUSED_FG}%{B$COLOR_FOCUSED_BG}${name}%{B-}%{F-} "
+						wm_infos="${wm_infos} %{F$COLOR_FOCUSED_FG}%{B$COLOR_FOCUSED_BG}${name}%{B-}%{F-}"
 						;;
 					o*|f*)
 						# Other
-						wm_infos="${wm_infos} ${name} "
+						wm_infos="${wm_infos} ${name}"
 						;;
 					u*)
 						# urgent desktop
-						wm_infos="${wm_infos}%{F$COLOR_URGENT_FG}%{B$COLOR_URGENT_BG} ${name} %{B-}%{F-}"
+						wm_infos="${wm_infos} %{F$COLOR_URGENT_FG}%{B$COLOR_URGENT_BG}${name}%{B-}%{F-}"
 						;;
 				esac
 				shift
 			done
 			;;
 	esac
-	echo "%{l}${wm_infos}$ITEM_SEPARATOR%{c}${title}%{r}$ITEM_SEPARATOR${sys_infos} " | sed 's/  / /g'
-	echo "%{l}${wm_infos}$ITEM_SEPARATOR%{c}${title}%{r}$ITEM_SEPARATOR${sys_infos}" >> /tmp/test.dump
+	echo -e "%{l}${wm_infos}$ITEM_SEPARATOR%{c}${title}%{r}${SEP}${kbd} ${uim}${SEP_L}${sys_infos} "
 done
