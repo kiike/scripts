@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+import os
+import json
+import argparse
+import subprocess
+
+'''
+A simple bookmark manager.
+'''
+
+def add(json_data, title, uri):
+    mark = {'tags': [],
+            'uri': uri,
+            'title': title}
+    json_data.append(mark)
+
+    out_file = os.path.expanduser(args.in_file)
+    with open(out_file, mode='w') as f:
+        json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+
+def search(json_data, args):
+    if not args.tags and not args.title and not args.uri:
+        args.uri=''
+
+    out = []
+    for entry in json_data:
+        if args.tags is not None:
+            for t in entry.get('tags'):
+                if args.tags in t:
+                    out.append(entry.get('uri'))
+
+        if args.title is not None:
+            if args.title in entry.get('title'.lower()):
+                out.append(entry.get('uri'))
+
+        if args.uri is not None:
+            if args.uri in entry.get('uri'):
+                out.append(entry.get('uri'))
+
+    return out
+
+
+def dump(json_data, args):
+    """
+    Dump the bookmarks from json_data according to the format in args.
+    """
+
+    out = []
+    for entry in json_data:
+        tags = ''.join(entry.get('tags'))
+        template = '{0:<30.28}{1:<60.58}{2:<60.58}'
+        out.append(template.format(tags, entry.get('title'), entry.get('uri')))
+
+    return out
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--file', '-f', help='Bookmarks file',
+                    dest='in_file', default='~/.bookmarks')
+subparsers = parser.add_subparsers(help='Available modes',
+        dest='parser')
+subparsers.required=True
+
+parser_search = subparsers.add_parser('search', aliases=['s'])
+parser_search.add_argument('--tags', '-g', help='Search by tags')
+parser_search.add_argument('--uri', '-u', help='Search by URI')
+parser_search.add_argument('--title', '-t', help='Search by title')
+parser_search.set_defaults(func=search)
+
+parser_dump = subparsers.add_parser('dump', aliases=['d'], help="Dump bookmarks.")
+parser_dump.set_defaults(func=dump)
+
+parser_add = subparsers.add_parser('add', aliases=['a'])
+parser_add.set_defaults(func=add)
+
+args = parser.parse_args()
+
+with open(os.path.expanduser(args.in_file)) as f:
+    json_data = json.load(f)
+    qute_fifo = os.getenv('QUTE_FIFO')
+    action = args.func
+
+    if qute_fifo:
+        if action == dump:
+            dumped = action(json_data, args)
+            dmenu_sel = subprocess.check_output(['dmenu', '-l', '32'],
+                                                input='\n'.join(dumped),
+                                                universal_newlines=True)
+            selected_uri = dmenu_sel.split()[-1]
+            with open(qute_fifo, mode='w') as qute_fifo:
+                qute_fifo.write('open ' + selected_uri)
+
+        elif action == add:
+            title = os.getenv('QUTE_TITLE')
+            uri = os.getenv('QUTE_URL')
+            action(json_data, title, uri)
+
+
+    else:
+        results = action(json_data, args)
+        if results:
+            print('\n'.join(ret))
