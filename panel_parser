@@ -4,12 +4,16 @@
 
 while read -r line ; do
 	case $line in
+		B*)
+			# battery output
+			bat="\ue02a ${line#?}"
+			;;
 		S*)
 			# clock output
 			sys_infos="\ue039 ${line#?}"
 			;;
 		K*)
-			kbd="\ue098${line#?}"
+			kbd="\ue098 ${line#?}"
 			;;
 
 		UIM*)
@@ -48,5 +52,5 @@ while read -r line ; do
 			done
 			;;
 	esac
-	echo -e "%{l}${wm_infos}$ITEM_SEPARATOR%{c}${title}%{r}${SEP}${kbd} ${uim}${SEP_L}${sys_infos} "
+	echo -e "%{l}${wm_infos}${SEP_L}%{c}${title}%{r}${SEP}${kbd} ${uim}${SEP_L}${bat}${SEP_L}${sys_infos} "
 done
