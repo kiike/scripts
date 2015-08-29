@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+CACHE=~/.cache/passmenu_hist
+
+shopt -s nullglob globstar
+
+prefix=${PASSWORD_STORE_DIR-~/.password-store}
+password_files=( "$prefix"/**/*.gpg )
+password_files=( "${password_files[@]#"$prefix"/}" )
+password_files=(${password_files[@]%.gpg})
+frequent=$([ -f "$CACHE" ] && sort "$CACHE" | uniq -c | sort -rn | colrm 1 8)
+
+# sed to remove empty lines
+password=$(printf '%s\n' "${frequent}" "${password_files[@]}" | sed '/^$/d' | dmenu "$@")
+
+[[ -n $password ]] || exit
+echo $password > "${CACHE}"
+
+xdotool type --delay 30 --clearmodifiers -- "$(pass show "$password" | head -n 1)"
+xdotool key Return
