@@ -8,6 +8,7 @@ import subprocess
 A simple bookmark manager.
 '''
 
+
 def add(json_data, title, uri):
     mark = {'tags': [],
             'uri': uri,
@@ -21,7 +22,7 @@ def add(json_data, title, uri):
 
 def search(json_data, args):
     if not args.tags and not args.title and not args.uri:
-        args.uri=''
+        args.uri = ''
 
     out = []
     for entry in json_data:
@@ -42,9 +43,9 @@ def search(json_data, args):
 
 
 def dump(json_data, args):
-    """
+    '''
     Dump the bookmarks from json_data according to the format in args.
-    """
+    '''
 
     out = []
     for entry in json_data:
@@ -56,11 +57,13 @@ def dump(json_data, args):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--file', '-f', help='Bookmarks file',
-                    dest='in_file', default='~/.bookmarks')
+parser.add_argument('--file', '-f',
+                    help='Bookmarks file',
+                    dest='in_file',
+                    default='~/.bookmarks')
 subparsers = parser.add_subparsers(help='Available modes',
-        dest='parser')
-subparsers.required=True
+                                   dest='parser')
+subparsers.required = True
 
 parser_search = subparsers.add_parser('search', aliases=['s'])
 parser_search.add_argument('--tags', '-g', help='Search by tags')
@@ -68,7 +71,8 @@ parser_search.add_argument('--uri', '-u', help='Search by URI')
 parser_search.add_argument('--title', '-t', help='Search by title')
 parser_search.set_defaults(func=search)
 
-parser_dump = subparsers.add_parser('dump', aliases=['d'], help="Dump bookmarks.")
+parser_dump = subparsers.add_parser('dump', aliases=['d'],
+                                    help='Dump bookmarks.')
 parser_dump.set_defaults(func=dump)
 
 parser_add = subparsers.add_parser('add', aliases=['a'])
@@ -96,8 +100,7 @@ with open(os.path.expanduser(args.in_file)) as f:
             uri = os.getenv('QUTE_URL')
             action(json_data, title, uri)
 
-
     else:
         results = action(json_data, args)
         if results:
-            print('\n'.join(ret))
+            print('\n'.join(results))
