@@ -11,10 +11,15 @@ password_files=(${password_files[@]%.gpg})
 frequent=$([ -f "$CACHE" ] && sort "$CACHE" | uniq -c | sort -rn | colrm 1 8)
 
 # sed to remove empty lines
-password=$(printf '%s\n' "${frequent}" "${password_files[@]}" | sed '/^$/d' | dmenu "$@")
+password=$(printf '%s\n' "${frequent}" "${password_files[@]}" | sed '/^$/d' | dmenu)
 
 [[ -n $password ]] || exit
 echo $password > "${CACHE}"
 
-xdotool type --delay 30 --clearmodifiers -- "$(pass show "$password" | head -n 1)"
-xdotool key Return
+if [[ $1 == "--type" ]]; then
+	xdotool type --delay 30 --clearmodifiers -- "$(pass show "$password" | head -n 1)"
+	xdotool key Return
+else
+	pass show "$password" | head -n 1 | xclip
+	notify-send "Pass menu" "Password for $password copied to clipboard."
+fi
