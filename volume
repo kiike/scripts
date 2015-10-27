@@ -1,44 +1,51 @@
 #!/bin/sh
+# vim: ts=4 sts=4 sw=4 et
 
-getvol() {
-	amixer sget Master | \
-		egrep dB | \
-		cut -d ' ' -f 7 | \
-		tr -d '[]'
+get_sink() {
+    echo -e "$STATE" | grep set-default-sink | cut -d " " -f 2
 }
 
-setvol() {
-	amixer -q sset Master $1
+up() {
+	pactl set-sink-mute ${SINK} false
+	pactl set-sink-volume ${SINK} +${STEP}
+	notify_volume
 }
 
-getmute() {
-	if [ $(amixer sget Master | \
-		egrep dB | cut -d ' ' -f 8 | \
-		tr -d '[]') == "on" ]
-	then
-		echo "unmuted"
-	else
-		echo "muted"
-	fi
+down() {
+	pactl set-sink-mute ${SINK} false
+	pactl set-sink-volume ${SINK} -${STEP}
+	notify_volume
 }
 
 mute() {
-	amixer -q sset Master toggle
+    IS_MUTED=$(echo -e "$STATE" | grep set-sink-mute | cut -f 3 -d ' ')
+	case $IS_MUTED in
+		yes)
+			pactl set-sink-mute ${SINK} false
+			notify-send mute unmuted
+			;;
+
+		no)
+			pactl set-sink-mute ${SINK} true
+			notify-send mute muted
+			;;
+	esac
 }
 
+notify_volume() {
+	volume_hex=$(echo -e "$STATE" | grep "set-sink-volume ${SINK}" | cut -f3 -d' ')
+	volume=$((16#${volume_hex#0x}))
+	notify-send -u low "volume" "$((100 * volume / 65536))%"
+}
+
+STATE=$(pacmd dump)
+SINK=$(echo -e "$STATE" | grep set-default-sink | cut -d " " -f 2)
+
+STEP=10%
+
 case $1 in
-	s) setvol $2
-	   notify-send -t 2000 -- 'Volume' "$(getvol)" ;;
-
-	v) getvol
-	   notify-send -t 2000 -- 'Volume' "Current volume: $(getvol)" ;;
-
-	m) mute
-	   notify-send -t 2000 -- 'Mute' "$(getmute)" ;;
-
-	*) echo "	Usage:	volume.sh <v|m>"
-	   echo "		v: get the current volume"
-	   echo "		m: mute"
-	   echo "		s: set the volume"
-	   exit 1;;
+	u|up) up ;;
+	d|down) down ;;
+	m|mute) mute ;;
+	*) echo "$0 usage: u[p]|d[own]|m[ute]"
 esac
