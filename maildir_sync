@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+if [[ $# < 1 ]]; then
+	echo "Usage: $0 [mbsync args]"
+	exit 1
+fi
+
+host=$(grep Host ~/.isyncrc | awk '{print $2}')
+if ! ping -qc 1 $host &>/dev/null ; then
+	echo "No connection to host"
+	exit 1
+fi
+
+mbsync $*
+notmuch new &> /dev/null
+afew --tag --new
