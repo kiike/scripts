@@ -3,6 +3,11 @@
 
 SERVER="ub.edu"
 
+if [[ ! $(whoami) == root ]]; then
+	echo "ERROR> This script must be run as root."
+	exit 1
+fi
+
 get_date() {
 	curl -sI "${SERVER}" \
 		| grep '^Date:' \
@@ -10,4 +15,4 @@ get_date() {
 }
 
 DATE="$(get_date)Z"
-date -s "$DATE"
+test -n $DATE && date -s "$DATE"
